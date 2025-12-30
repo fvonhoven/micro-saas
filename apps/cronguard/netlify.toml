@@ -1,15 +1,10 @@
-[build]
-  command = "pnpm build"
-  publish = ".next"
-
-[build.environment]
-  NODE_VERSION = "18"
+# Build settings are configured in Netlify UI for monorepo support
+# Only plugins and functions config here
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
 [functions]
-  directory = "netlify/functions"
   node_bundler = "esbuild"
   included_files = ["node_modules/**"]
 
