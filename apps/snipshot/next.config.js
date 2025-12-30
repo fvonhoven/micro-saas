@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@repo/ui", "@repo/auth", "@repo/firebase", "@repo/billing", "@repo/email"],
+  transpilePackages: ["@repo/ui", "@repo/auth", "@repo/firebase", "@repo/billing", "@repo/email", "undici"],
   experimental: {
-    serverComponentsExternalPackages: ["firebase-admin"],
+    serverComponentsExternalPackages: ["firebase-admin", "undici"],
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
