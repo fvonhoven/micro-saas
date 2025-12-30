@@ -1,7 +1,9 @@
-import { initializeApp, getApps, type FirebaseApp } from 'firebase/app'
-import { getAuth, type Auth } from 'firebase/auth'
-import { getFirestore, type Firestore } from 'firebase/firestore'
-import { getStorage, type FirebaseStorage } from 'firebase/storage'
+"use client"
+
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
+import { getAuth, type Auth } from "firebase/auth"
+import { getFirestore, type Firestore } from "firebase/firestore"
+import { getStorage, type FirebaseStorage } from "firebase/storage"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -17,7 +19,7 @@ let auth: Auth
 let db: Firestore
 let storage: FirebaseStorage
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig)
   auth = getAuth(app)
   db = getFirestore(app)
@@ -25,4 +27,3 @@ if (typeof window !== 'undefined') {
 }
 
 export { app, auth, db, storage }
-
