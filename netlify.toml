@@ -1,0 +1,9 @@
+# Root netlify.toml - applies to all sites built from this repo
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Note: Build command, publish directory, and base directory
+# should be configured per-site in the Netlify UI since this
+# monorepo contains multiple apps.
+
