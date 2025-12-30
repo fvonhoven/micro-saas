@@ -10,6 +10,7 @@
     "clean": "rm -rf .next .turbo node_modules"
   },
   "dependencies": {
+    "@netlify/functions": "^5.1.2",
     "@repo/auth": "workspace:*",
     "@repo/billing": "workspace:*",
     "@repo/email": "workspace:*",
@@ -20,6 +21,7 @@
     "next": "14.0.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "resend": "^3.0.0",
     "stripe": "^14.10.0",
     "zod": "^3.22.4"
   },
@@ -36,4 +38,3 @@
     "typescript": "^5.3.3"
   }
 }
-

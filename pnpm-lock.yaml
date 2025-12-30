@@ -26,6 +26,9 @@ importers:
 
   apps/cronguard:
     dependencies:
+      '@netlify/functions':
+        specifier: ^5.1.2
+        version: 5.1.2
       '@repo/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -56,6 +59,9 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+      resend:
+        specifier: ^3.0.0
+        version: 3.5.0(react-dom@18.3.1)(react@18.3.1)
       stripe:
         specifier: ^14.10.0
         version: 14.25.0
@@ -1122,10 +1128,22 @@ packages:
     dev: true
     optional: true
 
+  /@netlify/functions@5.1.2:
+    resolution: {integrity: sha512-tpPiLSkQatuexH8AdAZ8RlALvT7ixOE9VhvpkzQGNvihcms8hzmvUDuSxQa7UneTj/sHsdirnXmnJ+nmf+Nx/w==}
+    engines: {node: '>=18.0.0'}
+    dependencies:
+      '@netlify/types': 2.3.0
+    dev: false
+
   /@netlify/plugin-nextjs@5.15.2:
     resolution: {integrity: sha512-OJ+CbkAlS1ezKvP8okP5i4DGApXBPwUQ+LyapBqwOqx+A4Yl/LT8wiT16WduK0Pq10tkRxiicuQU38jUE6nxRQ==}
     engines: {node: '>=18.0.0'}
     dev: true
+
+  /@netlify/types@2.3.0:
+    resolution: {integrity: sha512-5gxMWh/S7wr0uHKSTbMv4bjWmWSpwpeLYvErWeVNAPll5/QNFo9aWimMAUuh8ReLY3/fg92XAroVVu7+z27Snw==}
+    engines: {node: ^18.14.0 || >=20}
+    dev: false
 
   /@next/env@14.0.4:
     resolution: {integrity: sha512-irQnbMLbUNQpP1wcE5NstJtbuA/69kRfzBrpAD7Gsn8zm/CY6YQYc3HQBz8QPxwISG26tIm5afvvVbu508oBeQ==}
