@@ -8,8 +8,5 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-
-[[functions]]
-  path = "/api/*"
   included_files = ["node_modules/**"]
 
