@@ -1,27 +1,36 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { Button } from '@repo/ui'
-import { useRouter } from 'next/navigation'
+import { useState } from "react"
+import { Button } from "@repo/ui"
+import { useRouter } from "next/navigation"
+
+const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
 export default function NewMonitorPage() {
   const router = useRouter()
-  const [name, setName] = useState('')
-  const [expectedInterval, setExpectedInterval] = useState(3600) // 1 hour default
-  const [gracePeriod, setGracePeriod] = useState(300) // 5 minutes default
-  const [alertEmail, setAlertEmail] = useState('')
+  const [name, setName] = useState("")
+  const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(60) // 60 minutes default
+  const [customInterval, setCustomInterval] = useState("")
+  const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | "custom">(5) // 5 minutes default
+  const [customGracePeriod, setCustomGracePeriod] = useState("")
+  const [alertEmail, setAlertEmail] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    setError("")
     setLoading(true)
 
     try {
-      const response = await fetch('/api/monitors', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      // Convert minutes to seconds
+      const expectedInterval = intervalMinutes === "custom" ? Number(customInterval) * 60 : intervalMinutes * 60
+
+      const gracePeriod = gracePeriodMinutes === "custom" ? Number(customGracePeriod) * 60 : gracePeriodMinutes * 60
+
+      const response = await fetch("/api/monitors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
           expectedInterval,
@@ -31,12 +40,12 @@ export default function NewMonitorPage() {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create monitor')
+        throw new Error("Failed to create monitor")
       }
 
-      router.push('/dashboard')
+      router.push("/dashboard")
     } catch (err: any) {
-      setError(err.message || 'Failed to create monitor')
+      setError(err.message || "Failed to create monitor")
     } finally {
       setLoading(false)
     }
@@ -53,9 +62,7 @@ export default function NewMonitorPage() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <h2 className="text-2xl font-bold mb-6">Create New Monitor</h2>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>
-        )}
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
           <div>
@@ -63,7 +70,7 @@ export default function NewMonitorPage() {
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
               placeholder="Daily backup job"
               required
@@ -71,37 +78,61 @@ export default function NewMonitorPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Expected Interval (seconds)
-            </label>
-            <input
-              type="number"
-              value={expectedInterval}
-              onChange={(e) => setExpectedInterval(Number(e.target.value))}
+            <label className="block text-sm font-medium mb-1">Expected Interval (minutes)</label>
+            <select
+              value={intervalMinutes}
+              onChange={e => setIntervalMinutes(e.target.value === "custom" ? "custom" : Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-md"
-              min={60}
               required
-            />
-            <p className="text-sm text-gray-600 mt-1">
-              How often should this job check in? (e.g., 3600 = 1 hour)
-            </p>
+            >
+              {MINUTE_OPTIONS.map(min => (
+                <option key={min} value={min}>
+                  {min} {min === 1 ? "minute" : "minutes"}
+                </option>
+              ))}
+              <option value="custom">Custom</option>
+            </select>
+            {intervalMinutes === "custom" && (
+              <input
+                type="number"
+                value={customInterval}
+                onChange={e => setCustomInterval(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md mt-2"
+                placeholder="Enter minutes"
+                min={1}
+                required
+              />
+            )}
+            <p className="text-sm text-gray-600 mt-1">How often should this job check in?</p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Grace Period (seconds)
-            </label>
-            <input
-              type="number"
-              value={gracePeriod}
-              onChange={(e) => setGracePeriod(Number(e.target.value))}
+            <label className="block text-sm font-medium mb-1">Grace Period (minutes)</label>
+            <select
+              value={gracePeriodMinutes}
+              onChange={e => setGracePeriodMinutes(e.target.value === "custom" ? "custom" : Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-md"
-              min={0}
               required
-            />
-            <p className="text-sm text-gray-600 mt-1">
-              How long to wait before marking as DOWN? (e.g., 300 = 5 minutes)
-            </p>
+            >
+              {MINUTE_OPTIONS.map(min => (
+                <option key={min} value={min}>
+                  {min} {min === 1 ? "minute" : "minutes"}
+                </option>
+              ))}
+              <option value="custom">Custom</option>
+            </select>
+            {gracePeriodMinutes === "custom" && (
+              <input
+                type="number"
+                value={customGracePeriod}
+                onChange={e => setCustomGracePeriod(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md mt-2"
+                placeholder="Enter minutes"
+                min={0}
+                required
+              />
+            )}
+            <p className="text-sm text-gray-600 mt-1">How long to wait before marking as DOWN?</p>
           </div>
 
           <div>
@@ -109,7 +140,7 @@ export default function NewMonitorPage() {
             <input
               type="email"
               value={alertEmail}
-              onChange={(e) => setAlertEmail(e.target.value)}
+              onChange={e => setAlertEmail(e.target.value)}
               className="w-full px-3 py-2 border rounded-md"
               placeholder="you@example.com"
             />
@@ -117,13 +148,9 @@ export default function NewMonitorPage() {
 
           <div className="flex gap-4">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Monitor'}
+              {loading ? "Creating..." : "Create Monitor"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push('/dashboard')}
-            >
+            <Button type="button" variant="outline" onClick={() => router.push("/dashboard")}>
               Cancel
             </Button>
           </div>
@@ -132,4 +159,3 @@ export default function NewMonitorPage() {
     </div>
   )
 }
-
