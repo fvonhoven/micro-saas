@@ -10,6 +10,24 @@ import { auth } from "@repo/firebase/client"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
+const COMMON_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Anchorage", label: "Alaska (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii (HST)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris (CET)" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Australia/Sydney", label: "Sydney (AEDT)" },
+  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+]
+
 interface Monitor {
   id: string
   name: string
@@ -18,6 +36,7 @@ interface Monitor {
   expectedInterval: number
   gracePeriod?: number
   alertEmail?: string
+  timezone?: string
   lastPingAt: any
   nextExpectedAt?: any
 }
@@ -65,6 +84,7 @@ export default function DashboardPage() {
     gracePeriodMinutes: 5 as number | "custom",
     customGracePeriod: "",
     alertEmail: "",
+    timezone: "UTC",
   })
 
   useEffect(() => {
@@ -173,6 +193,7 @@ export default function DashboardPage() {
       gracePeriodMinutes: isGracePeriodPreset ? gracePeriodMinutes : "custom",
       customGracePeriod: isGracePeriodPreset ? "" : String(gracePeriodMinutes),
       alertEmail: monitor.alertEmail || "",
+      timezone: monitor.timezone || "UTC",
     })
     setEditModalOpen(true)
     setOpenMenuId(null)
@@ -195,11 +216,14 @@ export default function DashboardPage() {
           expectedInterval,
           gracePeriod,
           alertEmail: editForm.alertEmail,
+          timezone: editForm.timezone,
         }),
       })
       setMonitors(
         monitors.map(m =>
-          m.id === editingMonitor.id ? { ...m, name: editForm.name, expectedInterval, gracePeriod, alertEmail: editForm.alertEmail } : m,
+          m.id === editingMonitor.id
+            ? { ...m, name: editForm.name, expectedInterval, gracePeriod, alertEmail: editForm.alertEmail, timezone: editForm.timezone }
+            : m,
         ),
       )
       setEditModalOpen(false)
@@ -545,6 +569,22 @@ export default function DashboardPage() {
                     className="w-full px-3 py-2 border rounded-md"
                     placeholder="you@example.com"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Timezone</label>
+                  <select
+                    value={editForm.timezone}
+                    onChange={e => setEditForm({ ...editForm, timezone: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                  >
+                    {COMMON_TIMEZONES.map(tz => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-sm text-gray-600 mt-1">Email timestamps will use this timezone</p>
                 </div>
 
                 <div className="flex gap-4 pt-4">

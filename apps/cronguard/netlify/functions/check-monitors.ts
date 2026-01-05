@@ -19,17 +19,19 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 // Run every 5 minutes instead of every minute to conserve function invocations
 const handler = schedule("*/5 * * * *", async () => {
-  console.log("Checking monitors...")
+  const executionId = Math.random().toString(36).substring(7)
+  console.log(`[${executionId}] Checking monitors...`)
 
   try {
     const now = new Date()
+    console.log(`[${executionId}] Execution started at: ${now.toISOString()}`)
 
     // Get all active monitors (not PAUSED)
     // We'll filter in-memory to avoid complex Firestore index requirements
     const allMonitorsSnapshot = await db.collection("monitors").where("status", "!=", "PAUSED").get()
 
-    console.log(`Checking ${allMonitorsSnapshot.size} monitors`)
-    console.log(`Current time: ${now.toISOString()}`)
+    console.log(`[${executionId}] Checking ${allMonitorsSnapshot.size} monitors`)
+    console.log(`[${executionId}] Current time: ${now.toISOString()}`)
 
     let overdueCount = 0
 
@@ -59,8 +61,14 @@ const handler = schedule("*/5 * * * *", async () => {
         }
       } else {
         // Grace period expired - mark as DOWN and send alert (ONLY ONCE)
+        console.log(`Monitor ${monitor.name} - Current status: ${monitor.status}`)
+
         if (monitor.status !== "DOWN") {
+          console.log(`Monitor ${monitor.name} - Transitioning to DOWN status`)
+
+          // Update status to DOWN FIRST, before sending email
           await doc.ref.update({ status: "DOWN" })
+          console.log(`Monitor ${monitor.name} - Status updated to DOWN in Firestore`)
 
           // Create incident
           await doc.ref.collection("incidents").add({
@@ -72,6 +80,18 @@ const handler = schedule("*/5 * * * *", async () => {
           // Send alert email
           if (monitor.alertEmail && resend) {
             try {
+              const lastPingTime = monitor.lastPingAt ? monitor.lastPingAt.toDate() : null
+              const expectedTime = monitor.nextExpectedAt.toDate()
+              const timezone = monitor.timezone || "UTC"
+
+              const formatTime = (date: Date) => {
+                return date.toLocaleString("en-US", {
+                  timeZone: timezone,
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })
+              }
+
               await resend.emails.send({
                 from: "onboarding@resend.dev",
                 to: monitor.alertEmail,
@@ -79,8 +99,9 @@ const handler = schedule("*/5 * * * *", async () => {
                 html: `
                   <h1>Monitor Alert</h1>
                   <p>Your monitor <strong>${monitor.name}</strong> has not checked in and is now marked as DOWN.</p>
-                  <p>Last ping: ${monitor.lastPingAt ? new Date(monitor.lastPingAt.toDate()).toLocaleString() : "Never"}</p>
-                  <p>Expected by: ${new Date(monitor.nextExpectedAt.toDate()).toLocaleString()}</p>
+                  <p><strong>Last ping:</strong> ${lastPingTime ? formatTime(lastPingTime) : "Never"}</p>
+                  <p><strong>Expected by:</strong> ${formatTime(expectedTime)}</p>
+                  <p><strong>Current time:</strong> ${formatTime(now)}</p>
                   <p>Please check your cron job immediately.</p>
                 `,
               })

@@ -66,6 +66,18 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
           })
 
           // Send recovery email
+          const downtime = Math.round((now.getTime() - incident.startedAt.toDate().getTime()) / 1000 / 60)
+          const startedAt = incident.startedAt.toDate()
+          const timezone = monitor.timezone || "UTC"
+
+          const formatTime = (date: Date) => {
+            return date.toLocaleString("en-US", {
+              timeZone: timezone,
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          }
+
           await resend.emails.send({
             from: "onboarding@resend.dev",
             to: monitor.alertEmail,
@@ -73,8 +85,9 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
             html: `
               <h1>Monitor Recovered</h1>
               <p>Your monitor <strong>${monitor.name}</strong> has recovered and is now HEALTHY.</p>
-              <p>Downtime: ${Math.round((now.getTime() - incident.startedAt.toDate().getTime()) / 1000 / 60)} minutes</p>
-              <p>Recovered at: ${now.toLocaleString()}</p>
+              <p><strong>Went down:</strong> ${formatTime(startedAt)}</p>
+              <p><strong>Recovered:</strong> ${formatTime(now)}</p>
+              <p><strong>Downtime:</strong> ${downtime} minute${downtime !== 1 ? "s" : ""}</p>
             `,
           })
         }

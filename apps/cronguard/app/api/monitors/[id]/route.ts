@@ -25,6 +25,7 @@ const updateMonitorSchema = z.object({
   expectedInterval: z.number().min(60).optional(),
   gracePeriod: z.number().min(0).optional(),
   alertEmail: z.string().email().optional().or(z.literal("")),
+  timezone: z.string().optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {

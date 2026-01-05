@@ -1,10 +1,28 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
+
+const COMMON_TIMEZONES = [
+  { value: "America/New_York", label: "Eastern Time (ET)" },
+  { value: "America/Chicago", label: "Central Time (CT)" },
+  { value: "America/Denver", label: "Mountain Time (MT)" },
+  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
+  { value: "America/Phoenix", label: "Arizona (MST)" },
+  { value: "America/Anchorage", label: "Alaska (AKT)" },
+  { value: "Pacific/Honolulu", label: "Hawaii (HST)" },
+  { value: "Europe/London", label: "London (GMT/BST)" },
+  { value: "Europe/Paris", label: "Paris (CET)" },
+  { value: "Europe/Berlin", label: "Berlin (CET)" },
+  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
+  { value: "Asia/Shanghai", label: "Shanghai (CST)" },
+  { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Australia/Sydney", label: "Sydney (AEDT)" },
+  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+]
 
 export default function NewMonitorPage() {
   const router = useRouter()
@@ -14,8 +32,15 @@ export default function NewMonitorPage() {
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | "custom">(5) // 5 minutes default
   const [customGracePeriod, setCustomGracePeriod] = useState("")
   const [alertEmail, setAlertEmail] = useState("")
+  const [timezone, setTimezone] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+
+  // Auto-detect user's timezone
+  useEffect(() => {
+    const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    setTimezone(detectedTimezone)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,6 +61,7 @@ export default function NewMonitorPage() {
           expectedInterval,
           gracePeriod,
           alertEmail: alertEmail || undefined,
+          timezone: timezone || "UTC",
         }),
       })
 
@@ -144,6 +170,18 @@ export default function NewMonitorPage() {
               className="w-full px-3 py-2 border rounded-md"
               placeholder="you@example.com"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Timezone</label>
+            <select value={timezone} onChange={e => setTimezone(e.target.value)} className="w-full px-3 py-2 border rounded-md" required>
+              {COMMON_TIMEZONES.map(tz => (
+                <option key={tz.value} value={tz.value}>
+                  {tz.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-sm text-gray-600 mt-1">Email timestamps will use this timezone</p>
           </div>
 
           <div className="flex gap-4">
