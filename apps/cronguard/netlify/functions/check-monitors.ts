@@ -23,15 +23,32 @@ const handler = schedule("* * * * *", async () => {
   try {
     const now = new Date()
 
-    // Find monitors that are overdue
-    const overdueSnapshot = await db.collection("monitors").where("status", "in", ["HEALTHY", "LATE"]).where("nextExpectedAt", "<", now).get()
+    // Get all active monitors (not PAUSED)
+    // We'll filter in-memory to avoid complex Firestore index requirements
+    const allMonitorsSnapshot = await db.collection("monitors").where("status", "!=", "PAUSED").get()
 
-    console.log(`Found ${overdueSnapshot.size} overdue monitors`)
+    console.log(`Checking ${allMonitorsSnapshot.size} monitors`)
     console.log(`Current time: ${now.toISOString()}`)
 
-    for (const doc of overdueSnapshot.docs) {
+    let overdueCount = 0
+
+    for (const doc of allMonitorsSnapshot.docs) {
       const monitor = doc.data()
-      const graceEndTime = new Date(monitor.nextExpectedAt.toDate().getTime() + monitor.gracePeriod * 1000)
+
+      // Skip if no nextExpectedAt (PENDING monitors that never received a ping)
+      if (!monitor.nextExpectedAt) {
+        continue
+      }
+
+      const nextExpectedAt = monitor.nextExpectedAt.toDate()
+
+      // Skip if not overdue yet
+      if (now < nextExpectedAt) {
+        continue
+      }
+
+      overdueCount++
+      const graceEndTime = new Date(nextExpectedAt.getTime() + (monitor.gracePeriod || 300) * 1000)
 
       if (now < graceEndTime) {
         // Still in grace period - mark as LATE
