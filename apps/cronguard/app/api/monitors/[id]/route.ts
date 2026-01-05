@@ -44,8 +44,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Monitor not found" }, { status: 404 })
     }
 
+    const monitor = monitorDoc.data()
+    const updateData: any = { ...data }
+
+    // If expectedInterval changed, recalculate nextExpectedAt
+    if (data.expectedInterval && monitor?.lastPingAt) {
+      const lastPing = monitor.lastPingAt.toDate()
+      updateData.nextExpectedAt = new Date(lastPing.getTime() + data.expectedInterval * 1000)
+    }
+
     // Update monitor
-    await adminDb.collection("monitors").doc(id).update(data)
+    await adminDb.collection("monitors").doc(id).update(updateData)
 
     const updatedDoc = await adminDb.collection("monitors").doc(id).get()
 

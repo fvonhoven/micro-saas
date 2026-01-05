@@ -52,41 +52,47 @@ const handler = schedule("*/5 * * * *", async () => {
       const graceEndTime = new Date(nextExpectedAt.getTime() + (monitor.gracePeriod || 300) * 1000)
 
       if (now < graceEndTime) {
-        // Still in grace period - mark as LATE
-        await doc.ref.update({ status: "LATE" })
-        console.log(`Monitor ${monitor.name} is LATE`)
+        // Still in grace period - mark as LATE (only if not already LATE or DOWN)
+        if (monitor.status !== "LATE" && monitor.status !== "DOWN") {
+          await doc.ref.update({ status: "LATE" })
+          console.log(`Monitor ${monitor.name} is LATE`)
+        }
       } else {
-        // Grace period expired - mark as DOWN and send alert
-        await doc.ref.update({ status: "DOWN" })
+        // Grace period expired - mark as DOWN and send alert (ONLY ONCE)
+        if (monitor.status !== "DOWN") {
+          await doc.ref.update({ status: "DOWN" })
 
-        // Create incident
-        await doc.ref.collection("incidents").add({
-          startedAt: now,
-          resolvedAt: null,
-          alertsSent: { email: true },
-        })
+          // Create incident
+          await doc.ref.collection("incidents").add({
+            startedAt: now,
+            resolvedAt: null,
+            alertsSent: { email: true },
+          })
 
-        // Send alert email
-        if (monitor.alertEmail && resend) {
-          try {
-            await resend.emails.send({
-              from: "onboarding@resend.dev",
-              to: monitor.alertEmail,
-              subject: `🚨 Monitor Down: ${monitor.name}`,
-              html: `
-                <h1>Monitor Alert</h1>
-                <p>Your monitor <strong>${monitor.name}</strong> has not checked in and is now marked as DOWN.</p>
-                <p>Last ping: ${monitor.lastPingAt ? new Date(monitor.lastPingAt.toDate()).toLocaleString() : "Never"}</p>
-                <p>Expected by: ${new Date(monitor.nextExpectedAt.toDate()).toLocaleString()}</p>
-                <p>Please check your cron job immediately.</p>
-              `,
-            })
-            console.log(`Monitor ${monitor.name} is DOWN - alert sent to ${monitor.alertEmail}`)
-          } catch (emailError) {
-            console.error(`Failed to send email for ${monitor.name}:`, emailError)
+          // Send alert email
+          if (monitor.alertEmail && resend) {
+            try {
+              await resend.emails.send({
+                from: "onboarding@resend.dev",
+                to: monitor.alertEmail,
+                subject: `🚨 Monitor Down: ${monitor.name}`,
+                html: `
+                  <h1>Monitor Alert</h1>
+                  <p>Your monitor <strong>${monitor.name}</strong> has not checked in and is now marked as DOWN.</p>
+                  <p>Last ping: ${monitor.lastPingAt ? new Date(monitor.lastPingAt.toDate()).toLocaleString() : "Never"}</p>
+                  <p>Expected by: ${new Date(monitor.nextExpectedAt.toDate()).toLocaleString()}</p>
+                  <p>Please check your cron job immediately.</p>
+                `,
+              })
+              console.log(`Monitor ${monitor.name} is DOWN - alert sent to ${monitor.alertEmail}`)
+            } catch (emailError) {
+              console.error(`Failed to send email for ${monitor.name}:`, emailError)
+            }
+          } else {
+            console.log(`Monitor ${monitor.name} is DOWN - no alert sent (${!monitor.alertEmail ? "no email configured" : "Resend not configured"})`)
           }
         } else {
-          console.log(`Monitor ${monitor.name} is DOWN - no alert sent (${!monitor.alertEmail ? "no email configured" : "Resend not configured"})`)
+          console.log(`Monitor ${monitor.name} is still DOWN (no new alert sent)`)
         }
       }
     }
