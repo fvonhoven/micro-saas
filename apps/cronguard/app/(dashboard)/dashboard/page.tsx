@@ -329,7 +329,9 @@ export default function DashboardPage() {
                             <div>
                               <p className="text-xs text-gray-500">Grace</p>
                               <p className="text-sm font-semibold text-gray-900">
-                                {monitor.gracePeriod >= 60 ? `${monitor.gracePeriod / 60} min` : `${monitor.gracePeriod} sec`}
+                                {(monitor.gracePeriod || 300) >= 60
+                                  ? `${(monitor.gracePeriod || 300) / 60} min`
+                                  : `${monitor.gracePeriod || 300} sec`}
                               </p>
                             </div>
                           </div>
