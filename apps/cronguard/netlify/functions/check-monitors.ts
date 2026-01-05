@@ -17,7 +17,8 @@ if (!getApps().length) {
 const db = getFirestore()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-const handler = schedule("* * * * *", async () => {
+// Run every 5 minutes instead of every minute to conserve function invocations
+const handler = schedule("*/5 * * * *", async () => {
   console.log("Checking monitors...")
 
   try {
@@ -69,7 +70,7 @@ const handler = schedule("* * * * *", async () => {
         if (monitor.alertEmail && resend) {
           try {
             await resend.emails.send({
-              from: "CronGuard <alerts@cronguard.com>",
+              from: "onboarding@resend.dev",
               to: monitor.alertEmail,
               subject: `🚨 Monitor Down: ${monitor.name}`,
               html: `

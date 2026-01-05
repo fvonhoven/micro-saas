@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
           // Send recovery email
           await resend.emails.send({
-            from: "CronGuard <alerts@cronguard.com>",
+            from: "onboarding@resend.dev",
             to: monitor.alertEmail,
             subject: `✅ Monitor Recovered: ${monitor.name}`,
             html: `
