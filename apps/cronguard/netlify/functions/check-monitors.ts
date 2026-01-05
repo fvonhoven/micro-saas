@@ -85,11 +85,11 @@ const handler = schedule("*/5 * * * *", async () => {
               const timezone = monitor.timezone || "UTC"
 
               const formatTime = (date: Date) => {
-                return date.toLocaleString("en-US", {
+                return new Intl.DateTimeFormat("en-US", {
                   timeZone: timezone,
                   dateStyle: "medium",
                   timeStyle: "short",
-                })
+                }).format(date)
               }
 
               await resend.emails.send({
