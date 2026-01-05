@@ -17,8 +17,8 @@ if (!getApps().length) {
 const db = getFirestore()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-// Run every 5 minutes instead of every minute to conserve function invocations
-const handler = schedule("*/5 * * * *", async () => {
+// Run every 1 minute for accurate monitoring
+const handler = schedule("* * * * *", async () => {
   const executionId = Math.random().toString(36).substring(7)
   console.log(`[${executionId}] Checking monitors...`)
 
@@ -26,29 +26,25 @@ const handler = schedule("*/5 * * * *", async () => {
     const now = new Date()
     console.log(`[${executionId}] Execution started at: ${now.toISOString()}`)
 
-    // Get all active monitors (not PAUSED)
-    // We'll filter in-memory to avoid complex Firestore index requirements
-    const allMonitorsSnapshot = await db.collection("monitors").where("status", "!=", "PAUSED").get()
+    // Get only monitors that are potentially overdue (nextExpectedAt <= now)
+    // This is more efficient than fetching all monitors and filtering in-memory
+    // We query for monitors where nextExpectedAt is in the past or null
+    const overdueMonitorsSnapshot = await db.collection("monitors").where("status", "!=", "PAUSED").where("nextExpectedAt", "<=", now).get()
 
-    console.log(`[${executionId}] Checking ${allMonitorsSnapshot.size} monitors`)
+    console.log(`[${executionId}] Found ${overdueMonitorsSnapshot.size} potentially overdue monitors`)
     console.log(`[${executionId}] Current time: ${now.toISOString()}`)
 
     let overdueCount = 0
 
-    for (const doc of allMonitorsSnapshot.docs) {
+    for (const doc of overdueMonitorsSnapshot.docs) {
       const monitor = doc.data()
 
-      // Skip if no nextExpectedAt (PENDING monitors that never received a ping)
+      // Skip if no nextExpectedAt (shouldn't happen with our query, but safety check)
       if (!monitor.nextExpectedAt) {
         continue
       }
 
       const nextExpectedAt = monitor.nextExpectedAt.toDate()
-
-      // Skip if not overdue yet
-      if (now < nextExpectedAt) {
-        continue
-      }
 
       overdueCount++
       const graceEndTime = new Date(nextExpectedAt.getTime() + (monitor.gracePeriod || 300) * 1000)
@@ -120,7 +116,7 @@ const handler = schedule("*/5 * * * *", async () => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ checked: allMonitorsSnapshot.size, overdue: overdueCount }),
+      body: JSON.stringify({ checked: overdueMonitorsSnapshot.size, overdue: overdueCount }),
     }
   } catch (error) {
     console.error("Error checking monitors:", error)

@@ -47,41 +47,31 @@ This guide walks you through deploying all three micro-SaaS apps to Netlify.
 
 ### 1.6 Create Firestore Indexes
 
-Run these commands in Firestore:
+**Recommended: Use Firebase CLI**
 
-```javascript
-// Monitors collection
-db.collection('monitors').createIndex({
-  userId: 1,
-  createdAt: -1
-})
-
-db.collection('monitors').createIndex({
-  status: 1,
-  nextExpectedAt: 1
-})
-
-// Forms collection
-db.collection('forms').createIndex({
-  userId: 1,
-  createdAt: -1
-})
-
-// API Keys collection
-db.collection('apiKeys').createIndex({
-  userId: 1,
-  createdAt: -1
-})
-
-db.collection('apiKeys').createIndex({
-  key: 1
-})
-
-// Screenshots collection
-db.collection('screenshots').createIndex({
-  cacheKey: 1
-})
+```bash
+# From the project root
+firebase deploy --only firestore:indexes
 ```
+
+This will automatically create all required indexes from `firestore.indexes.json`.
+
+**Alternative: Generate Direct URLs**
+
+```bash
+node scripts/create-firestore-indexes.js YOUR_PROJECT_ID
+```
+
+Click the generated URLs to create indexes in the Firebase Console.
+
+**Required Indexes:**
+
+- `monitors`: userId (ASC) + createdAt (DESC)
+- `monitors`: status (ASC) + nextExpectedAt (ASC) ⚡ **CRITICAL**
+- `forms`: userId (ASC) + createdAt (DESC)
+- `apiKeys`: userId (ASC) + createdAt (DESC)
+
+**Note:** Single-field indexes are created automatically by Firestore.
 
 ## Step 2: Stripe Setup
 
@@ -90,16 +80,19 @@ db.collection('screenshots').createIndex({
 Create three products in Stripe Dashboard:
 
 **CronGuard Plans:**
+
 - Starter: $9/month - 5 monitors
 - Pro: $29/month - 25 monitors
 - Team: $79/month - Unlimited monitors
 
 **FormVault Plans:**
+
 - Solo: $24/month - 10GB storage
 - Pro: $49/month - 50GB storage
 - Agency: $99/month - 500GB storage
 
 **SnipShot Plans:**
+
 - Starter: $19/month - 500 screenshots
 - Pro: $49/month - 2,500 screenshots
 - Scale: $99/month - 10,000 screenshots
@@ -111,11 +104,13 @@ Copy the price IDs for each plan and update `packages/billing/src/plans.ts`
 ### 2.3 Set Up Webhooks
 
 For each app, create a webhook endpoint:
+
 - CronGuard: `https://cronguard.netlify.app/api/webhooks/stripe`
 - FormVault: `https://formvault.netlify.app/api/webhooks/stripe`
 - SnipShot: `https://snipshot.netlify.app/api/webhooks/stripe`
 
 Select these events:
+
 - `checkout.session.completed`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
@@ -184,6 +179,7 @@ netlify deploy --prod
 For each Netlify site, go to Site Settings > Environment Variables and add:
 
 ### All Apps
+
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
@@ -201,6 +197,7 @@ RESEND_API_KEY=
 ```
 
 ### SnipShot Additional
+
 ```
 UPSTASH_REDIS_URL=
 UPSTASH_REDIS_TOKEN=
@@ -226,16 +223,19 @@ BROWSERLESS_API_KEY=
 ## Troubleshooting
 
 ### Build Failures
+
 - Check that all environment variables are set
 - Verify pnpm version matches package.json
 - Check build logs for specific errors
 
 ### Runtime Errors
+
 - Verify Firebase credentials are correct
 - Check Firestore security rules
 - Verify Stripe webhook secrets match
 
 ### Scheduled Functions (CronGuard)
+
 - Verify the function appears in Netlify Functions dashboard
 - Check function logs for errors
 - Ensure Firebase Admin SDK is initialized correctly
@@ -256,4 +256,3 @@ BROWSERLESS_API_KEY=
 - [ ] API keys are never exposed to client
 - [ ] Rate limiting is configured
 - [ ] CORS is properly configured
-

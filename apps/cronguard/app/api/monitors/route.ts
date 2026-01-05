@@ -1,4 +1,5 @@
 import { adminDb, adminAuth } from "@repo/firebase/admin"
+import { getUserPlan } from "@repo/billing"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { cookies } from "next/headers"
@@ -56,6 +57,32 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = createMonitorSchema.parse(body)
+
+    // Check plan limits
+    const userDoc = await adminDb.collection("users").doc(user.uid).get()
+    const userData = userDoc.data()
+    const currentPlan = getUserPlan("cronguard", {
+      stripePriceId: userData?.stripePriceId,
+      stripeCurrentPeriodEnd: userData?.stripeCurrentPeriodEnd,
+    })
+
+    // Count existing monitors
+    const monitorsSnapshot = await adminDb.collection("monitors").where("userId", "==", user.uid).get()
+
+    const monitorCount = monitorsSnapshot.size
+
+    // Check if user has reached their limit
+    if (currentPlan.limits.monitors !== -1 && monitorCount >= currentPlan.limits.monitors) {
+      return NextResponse.json(
+        {
+          error: "Monitor limit reached",
+          message: `Your ${currentPlan.name} plan allows ${currentPlan.limits.monitors} monitors. Upgrade to create more.`,
+          limit: currentPlan.limits.monitors,
+          current: monitorCount,
+        },
+        { status: 403 },
+      )
+    }
 
     // Generate unique slug
     const slug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`

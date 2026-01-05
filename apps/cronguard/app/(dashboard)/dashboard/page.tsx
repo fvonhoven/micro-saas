@@ -6,7 +6,9 @@ import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "firebase/auth"
-import { auth } from "@repo/firebase/client"
+import { auth, db } from "@repo/firebase/client"
+import { doc, getDoc } from "firebase/firestore"
+import { getUserPlan } from "@repo/billing/client"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -77,9 +79,10 @@ export default function DashboardPage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [currentPlan, setCurrentPlan] = useState<any>(null)
   const [editForm, setEditForm] = useState({
     name: "",
-    intervalMinutes: 60 as number | "custom",
+    intervalMinutes: 1 as number | "custom",
     customInterval: "",
     gracePeriodMinutes: 5 as number | "custom",
     customGracePeriod: "",
@@ -96,8 +99,25 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       fetchMonitors()
+      fetchUserPlan()
     }
   }, [user])
+
+  const fetchUserPlan = async () => {
+    if (!user) return
+
+    try {
+      const userDoc = await getDoc(doc(db, "users", user.uid))
+      const userData = userDoc.data()
+      const plan = getUserPlan("cronguard", {
+        stripePriceId: userData?.stripePriceId,
+        stripeCurrentPeriodEnd: userData?.stripeCurrentPeriodEnd,
+      })
+      setCurrentPlan(plan)
+    } catch (error) {
+      console.error("Error fetching user plan:", error)
+    }
+  }
 
   const fetchMonitors = async () => {
     try {
@@ -234,6 +254,25 @@ export default function DashboardPage() {
     }
   }
 
+  const handleManageBilling = async () => {
+    try {
+      const response = await fetch("/api/billing/create-portal-session", {
+        method: "POST",
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error("No portal URL returned")
+      }
+    } catch (error) {
+      console.error("Billing portal error:", error)
+      alert("Failed to open billing portal. Please try again.")
+    }
+  }
+
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -259,7 +298,23 @@ export default function DashboardPage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-xl font-bold">CronGuard</h1>
           <div className="flex gap-4 items-center">
+            {currentPlan && (
+              <div className="text-sm">
+                <span className="text-gray-600">Plan: </span>
+                <span className="font-semibold">{currentPlan.name}</span>
+                {currentPlan.price > 0 && (
+                  <button onClick={handleManageBilling} className="ml-2 text-blue-600 hover:underline">
+                    Manage
+                  </button>
+                )}
+              </div>
+            )}
             <span className="text-sm text-gray-600">{user.email}</span>
+            <Link href="/pricing">
+              <Button variant="outline" size="sm">
+                Upgrade
+              </Button>
+            </Link>
             <Link href="/dashboard/monitors/new">
               <Button>New Monitor</Button>
             </Link>
@@ -271,7 +326,14 @@ export default function DashboardPage() {
       </nav>
 
       <div className="container mx-auto px-4 py-8">
-        <h2 className="text-2xl font-bold mb-6">Your Monitors</h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Your Monitors</h2>
+          {currentPlan && (
+            <div className="text-sm text-gray-600">
+              {monitors.length} / {currentPlan.limits.monitors === -1 ? "∞" : currentPlan.limits.monitors} monitors used
+            </div>
+          )}
+        </div>
 
         {loadingMonitors ? (
           <p>Loading monitors...</p>

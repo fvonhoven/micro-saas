@@ -27,9 +27,9 @@ const COMMON_TIMEZONES = [
 export default function NewMonitorPage() {
   const router = useRouter()
   const [name, setName] = useState("")
-  const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(60) // 60 minutes default
+  const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(1) // 1 minute default
   const [customInterval, setCustomInterval] = useState("")
-  const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | "custom">(5) // 5 minutes default
+  const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | "custom">(1) // 1 minute default
   const [customGracePeriod, setCustomGracePeriod] = useState("")
   const [alertEmail, setAlertEmail] = useState("")
   const [timezone, setTimezone] = useState("")
@@ -65,8 +65,15 @@ export default function NewMonitorPage() {
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to create monitor")
+        if (response.status === 403 && data.message) {
+          // Plan limit reached
+          setError(data.message)
+          return
+        }
+        throw new Error(data.error || "Failed to create monitor")
       }
 
       router.push("/dashboard")
@@ -88,7 +95,16 @@ export default function NewMonitorPage() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <h2 className="text-2xl font-bold mb-6">Create New Monitor</h2>
 
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
+        {error && (
+          <div className="bg-red-50 text-red-600 p-3 rounded mb-4">
+            {error}
+            {error.includes("limit") && (
+              <a href="/pricing" className="ml-2 underline font-semibold">
+                View Plans
+              </a>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
           <div>

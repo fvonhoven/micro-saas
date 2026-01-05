@@ -5,6 +5,7 @@ A production-ready monorepo containing three micro-SaaS products built with Next
 ## 🚀 Products
 
 ### 1. **CronGuard** - Cron Job Monitoring
+
 Monitor your cron jobs and get instant alerts when they fail to check in.
 
 - **Port**: 3000
@@ -12,6 +13,7 @@ Monitor your cron jobs and get instant alerts when they fail to check in.
 - **Tech**: Next.js, Firebase Firestore, Netlify Scheduled Functions
 
 ### 2. **FormVault** - Secure Document Collection
+
 Collect documents from clients without requiring them to create accounts.
 
 - **Port**: 3001
@@ -19,6 +21,7 @@ Collect documents from clients without requiring them to create accounts.
 - **Tech**: Next.js, Firebase Storage, Resend
 
 ### 3. **SnipShot** - Screenshot API
+
 Capture website screenshots via API with CDN hosting and caching.
 
 - **Port**: 3002
@@ -35,20 +38,20 @@ Capture website screenshots via API with CDN hosting and caching.
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Monorepo | Turborepo + pnpm |
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS + shadcn/ui |
-| Database | Firebase Firestore |
-| Auth | Firebase Auth |
-| Storage | Firebase Storage |
-| Payments | Stripe |
-| Email | Resend |
-| Hosting | Netlify |
-| Rate Limiting | Upstash Redis |
-| Screenshots | Browserless |
+| Layer         | Technology               |
+| ------------- | ------------------------ |
+| Monorepo      | Turborepo + pnpm         |
+| Framework     | Next.js 14 (App Router)  |
+| Language      | TypeScript (strict)      |
+| Styling       | Tailwind CSS + shadcn/ui |
+| Database      | Firebase Firestore       |
+| Auth          | Firebase Auth            |
+| Storage       | Firebase Storage         |
+| Payments      | Stripe                   |
+| Email         | Resend                   |
+| Hosting       | Netlify                  |
+| Rate Limiting | Upstash Redis            |
+| Screenshots   | Browserless              |
 
 ## 🚀 Getting Started
 
@@ -65,12 +68,14 @@ Capture website screenshots via API with CDN hosting and caching.
 ### Installation
 
 1. **Clone the repository**
+
 ```bash
 git clone <your-repo-url>
 cd micro-saas-monorepo
 ```
 
 2. **Install dependencies**
+
 ```bash
 pnpm install
 ```
@@ -88,11 +93,13 @@ cp .env.example apps/snipshot/.env.local
 4. **Run development servers**
 
 Run all apps:
+
 ```bash
 pnpm dev
 ```
 
 Or run individual apps:
+
 ```bash
 cd apps/cronguard && pnpm dev  # Port 3000
 cd apps/formvault && pnpm dev  # Port 3001
@@ -110,16 +117,48 @@ cd apps/snipshot && pnpm dev   # Port 3002
 
 ### Firestore Indexes
 
-Create these composite indexes in Firestore:
+You need to create composite indexes for efficient queries. Choose one of these methods:
+
+#### Option 1: Automatic (Recommended)
+
+Use Firebase CLI to deploy indexes automatically:
+
+```bash
+# Install Firebase CLI if you haven't already
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Initialize Firebase in your project (if not already done)
+firebase init firestore
+
+# Deploy indexes
+firebase deploy --only firestore:indexes
+```
+
+#### Option 2: Generate Direct URLs
+
+Run the helper script to get clickable URLs:
+
+```bash
+node scripts/create-firestore-indexes.js YOUR_PROJECT_ID
+```
+
+This will output direct links to create each index in the Firebase Console.
+
+#### Option 3: Manual Creation
+
+Create these composite indexes manually in the Firebase Console:
 
 ```
 monitors: userId (Ascending), createdAt (Descending)
-monitors: status (Ascending), nextExpectedAt (Ascending)
+monitors: status (Ascending), nextExpectedAt (Ascending)  ⚡ CRITICAL for performance
 forms: userId (Ascending), createdAt (Descending)
 apiKeys: userId (Ascending), createdAt (Descending)
-apiKeys: key (Ascending)
-screenshots: cacheKey (Ascending)
 ```
+
+**Note:** Single-field indexes (like `apiKeys: key` and `screenshots: cacheKey`) are created automatically by Firestore.
 
 ## 💳 Stripe Setup
 
@@ -140,18 +179,21 @@ screenshots: cacheKey (Ascending)
 ### Deploy Each App Separately
 
 1. **CronGuard**
+
 ```bash
 cd apps/cronguard
 netlify deploy --prod
 ```
 
 2. **FormVault**
+
 ```bash
 cd apps/formvault
 netlify deploy --prod
 ```
 
 3. **SnipShot**
+
 ```bash
 cd apps/snipshot
 netlify deploy --prod
@@ -160,6 +202,7 @@ netlify deploy --prod
 ### Environment Variables on Netlify
 
 Add all environment variables from `.env.example` to each Netlify site:
+
 - Site Settings > Environment Variables
 
 ### Scheduled Functions (CronGuard)
@@ -235,6 +278,7 @@ micro-saas/
 ## 🔑 Key Features by App
 
 ### CronGuard
+
 - ✅ Unique ping URLs for each monitor
 - ✅ Configurable check intervals and grace periods
 - ✅ Email alerts on failures
@@ -242,6 +286,7 @@ micro-saas/
 - ✅ Netlify scheduled function for health checks
 
 ### FormVault
+
 - ✅ Magic link generation for clients
 - ✅ No-login file uploads
 - ✅ Firebase Storage integration
@@ -249,6 +294,7 @@ micro-saas/
 - ✅ Submission tracking
 
 ### SnipShot
+
 - ✅ RESTful screenshot API
 - ✅ SHA256-based caching
 - ✅ Upstash Redis rate limiting (60/min)
@@ -259,4 +305,3 @@ micro-saas/
 ## 📝 License
 
 MIT
-
