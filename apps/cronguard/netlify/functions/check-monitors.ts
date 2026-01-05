@@ -92,7 +92,7 @@ const handler = schedule("* * * * *", async () => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ checked: overdueSnapshot.size }),
+      body: JSON.stringify({ checked: allMonitorsSnapshot.size, overdue: overdueCount }),
     }
   } catch (error) {
     console.error("Error checking monitors:", error)
