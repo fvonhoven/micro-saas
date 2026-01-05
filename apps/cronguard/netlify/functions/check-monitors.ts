@@ -18,7 +18,10 @@ const db = getFirestore()
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // Run every 1 minute for accurate monitoring
-const handler = schedule("* * * * *", async () => {
+// * * * * * for every minute
+// */5 * * * * for 5 minutes
+// */15 * * * * for 15 minutes
+const handler = schedule("*/5 * * * *", async () => {
   const executionId = Math.random().toString(36).substring(7)
   console.log(`[${executionId}] Checking monitors...`)
 
