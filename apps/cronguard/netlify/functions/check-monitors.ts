@@ -27,6 +27,7 @@ const handler = schedule("* * * * *", async () => {
     const overdueSnapshot = await db.collection("monitors").where("status", "in", ["HEALTHY", "LATE"]).where("nextExpectedAt", "<", now).get()
 
     console.log(`Found ${overdueSnapshot.size} overdue monitors`)
+    console.log(`Current time: ${now.toISOString()}`)
 
     for (const doc of overdueSnapshot.docs) {
       const monitor = doc.data()
