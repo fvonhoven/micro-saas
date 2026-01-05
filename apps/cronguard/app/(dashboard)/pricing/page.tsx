@@ -149,7 +149,7 @@ export default function PricingPage() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  5-minute checks
+                  {plan.id === "free" || plan.id === "starter" ? "5-minute checks" : "1-minute checks"}
                 </li>
               </ul>
               {plan.id !== "free" ? (

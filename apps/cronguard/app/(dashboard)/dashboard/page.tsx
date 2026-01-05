@@ -103,6 +103,20 @@ export default function DashboardPage() {
     }
   }, [user])
 
+  // Refresh plan data when returning from Stripe checkout
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get("session_id")) {
+      // User just completed checkout, refresh plan data
+      setTimeout(() => {
+        fetchUserPlan()
+      }, 2000) // Wait 2 seconds for webhook to process
+
+      // Clean up URL
+      window.history.replaceState({}, "", "/dashboard")
+    }
+  }, [])
+
   const fetchUserPlan = async () => {
     if (!user) return
 
@@ -302,7 +316,7 @@ export default function DashboardPage() {
               <div className="text-sm">
                 <span className="text-gray-600">Plan: </span>
                 <span className="font-semibold">{currentPlan.name}</span>
-                {currentPlan.price > 0 && (
+                {currentPlan.monthlyPrice > 0 && (
                   <button onClick={handleManageBilling} className="ml-2 text-blue-600 hover:underline">
                     Manage
                   </button>
@@ -310,11 +324,13 @@ export default function DashboardPage() {
               </div>
             )}
             <span className="text-sm text-gray-600">{user.email}</span>
-            <Link href="/pricing">
-              <Button variant="outline" size="sm">
-                Upgrade
-              </Button>
-            </Link>
+            {currentPlan && currentPlan.monthlyPrice === 0 && (
+              <Link href="/pricing">
+                <Button variant="outline" size="sm">
+                  Upgrade
+                </Button>
+              </Link>
+            )}
             <Link href="/dashboard/monitors/new">
               <Button>New Monitor</Button>
             </Link>
