@@ -84,6 +84,19 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Check if interval meets plan requirements
+    const minIntervalSeconds = (currentPlan.limits.minCheckIntervalMinutes || 5) * 60
+    if (data.expectedInterval < minIntervalSeconds) {
+      return NextResponse.json(
+        {
+          error: "Check interval too short",
+          message: `Your ${currentPlan.name} plan requires a minimum ${currentPlan.limits.minCheckIntervalMinutes}-minute check interval. Upgrade to Pro for 1-minute checks.`,
+          minInterval: currentPlan.limits.minCheckIntervalMinutes,
+        },
+        { status: 403 },
+      )
+    }
+
     // Generate unique slug
     const slug = `${data.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`
 

@@ -5,25 +5,25 @@ export const PLAN_METADATA = {
       name: "Free",
       monthlyPrice: 0,
       annualPrice: 0,
-      limits: { monitors: 2 },
+      limits: { monitors: 2, minCheckIntervalMinutes: 5 },
     },
     starter: {
       name: "Starter",
       monthlyPrice: 15,
       annualPrice: 11, // 25% discount ($15 * 0.75 = $11.25, rounded to $11)
-      limits: { monitors: 5 },
+      limits: { monitors: 5, minCheckIntervalMinutes: 5 },
     },
     pro: {
       name: "Pro",
       monthlyPrice: 39,
       annualPrice: 29, // 25% discount ($39 * 0.75 = $29.25, rounded to $29)
-      limits: { monitors: 25 },
+      limits: { monitors: 25, minCheckIntervalMinutes: 1 },
     },
     team: {
       name: "Team",
       monthlyPrice: 99,
       annualPrice: 74, // 25% discount ($99 * 0.75 = $74.25, rounded to $74)
-      limits: { monitors: 100 }, // capped at 100
+      limits: { monitors: 100, minCheckIntervalMinutes: 1 }, // capped at 100
     },
   },
   formvault: {
@@ -88,7 +88,7 @@ export const PLANS = {
       priceId: null,
       monthlyPrice: 0,
       annualPrice: 0,
-      limits: { monitors: 2 },
+      limits: { monitors: 2, minCheckIntervalMinutes: 5 },
     },
     starter: {
       name: "Starter",
@@ -96,7 +96,7 @@ export const PLANS = {
       annualPriceId: process.env.STRIPE_CRONGUARD_STARTER_ANNUAL_PRICE_ID || "price_cronguard_starter_annual",
       monthlyPrice: 15,
       annualPrice: 11,
-      limits: { monitors: 5 },
+      limits: { monitors: 5, minCheckIntervalMinutes: 5 },
     },
     pro: {
       name: "Pro",
@@ -104,7 +104,7 @@ export const PLANS = {
       annualPriceId: process.env.STRIPE_CRONGUARD_PRO_ANNUAL_PRICE_ID || "price_cronguard_pro_annual",
       monthlyPrice: 39,
       annualPrice: 29,
-      limits: { monitors: 25 },
+      limits: { monitors: 25, minCheckIntervalMinutes: 1 },
     },
     team: {
       name: "Team",
@@ -112,7 +112,7 @@ export const PLANS = {
       annualPriceId: process.env.STRIPE_CRONGUARD_TEAM_ANNUAL_PRICE_ID || "price_cronguard_team_annual",
       monthlyPrice: 99,
       annualPrice: 74,
-      limits: { monitors: 100 },
+      limits: { monitors: 100, minCheckIntervalMinutes: 1 },
     },
   },
   formvault: {

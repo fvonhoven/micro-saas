@@ -6,9 +6,7 @@ import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "firebase/auth"
-import { auth, db } from "@repo/firebase/client"
-import { doc, getDoc } from "firebase/firestore"
-import { getUserPlan } from "@repo/billing/client"
+import { auth } from "@repo/firebase/client"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -121,13 +119,12 @@ export default function DashboardPage() {
     if (!user) return
 
     try {
-      const userDoc = await getDoc(doc(db, "users", user.uid))
-      const userData = userDoc.data()
-      const plan = getUserPlan("cronguard", {
-        stripePriceId: userData?.stripePriceId,
-        stripeCurrentPeriodEnd: userData?.stripeCurrentPeriodEnd,
-      })
-      setCurrentPlan(plan)
+      const response = await fetch("/api/user/plan")
+      const data = await response.json()
+
+      if (data.plan) {
+        setCurrentPlan(data.plan)
+      }
     } catch (error) {
       console.error("Error fetching user plan:", error)
     }
@@ -331,8 +328,10 @@ export default function DashboardPage() {
                 </Button>
               </Link>
             )}
-            <Link href="/dashboard/monitors/new">
-              <Button>New Monitor</Button>
+            <Link href="/profile">
+              <Button variant="outline" size="sm">
+                Profile
+              </Button>
             </Link>
             <Button onClick={handleLogout} variant="outline">
               Logout
@@ -343,7 +342,17 @@ export default function DashboardPage() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Your Monitors</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold">Your Monitors</h2>
+            <Link href="/dashboard/monitors/new">
+              <button className="p-1 rounded-full hover:bg-gray-100 transition-colors" title="Create new monitor">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v8m-4-4h8" />
+                </svg>
+              </button>
+            </Link>
+          </div>
           {currentPlan && (
             <div className="text-sm text-gray-600">
               {monitors.length} / {currentPlan.limits.monitors === -1 ? "∞" : currentPlan.limits.monitors} monitors used

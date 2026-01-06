@@ -27,7 +27,7 @@ const COMMON_TIMEZONES = [
 export default function NewMonitorPage() {
   const router = useRouter()
   const [name, setName] = useState("")
-  const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(1) // 1 minute default
+  const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(5) // 5 minute default (Free/Starter)
   const [customInterval, setCustomInterval] = useState("")
   const [gracePeriodMinutes, setGracePeriodMinutes] = useState<number | "custom">(1) // 1 minute default
   const [customGracePeriod, setCustomGracePeriod] = useState("")
@@ -35,6 +35,29 @@ export default function NewMonitorPage() {
   const [timezone, setTimezone] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [currentPlan, setCurrentPlan] = useState<any>(null)
+  const [loadingPlan, setLoadingPlan] = useState(true)
+
+  // Fetch user's plan
+  useEffect(() => {
+    const fetchPlan = async () => {
+      try {
+        const response = await fetch("/api/user/plan")
+        const data = await response.json()
+        if (data.plan) {
+          setCurrentPlan(data.plan)
+          // Set default interval based on plan
+          const minInterval = data.plan.limits.minCheckIntervalMinutes || 5
+          setIntervalMinutes(minInterval)
+        }
+      } catch (error) {
+        console.error("Error fetching plan:", error)
+      } finally {
+        setLoadingPlan(false)
+      }
+    }
+    fetchPlan()
+  }, [])
 
   // Auto-detect user's timezone
   useEffect(() => {
@@ -126,8 +149,13 @@ export default function NewMonitorPage() {
               onChange={e => setIntervalMinutes(e.target.value === "custom" ? "custom" : Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-md"
               required
+              disabled={loadingPlan}
             >
-              {MINUTE_OPTIONS.map(min => (
+              {MINUTE_OPTIONS.filter(min => {
+                // Filter based on plan's minimum check interval
+                const minInterval = currentPlan?.limits?.minCheckIntervalMinutes || 5
+                return min >= minInterval
+              }).map(min => (
                 <option key={min} value={min}>
                   {min} {min === 1 ? "minute" : "minutes"}
                 </option>
@@ -141,11 +169,19 @@ export default function NewMonitorPage() {
                 onChange={e => setCustomInterval(e.target.value)}
                 className="w-full px-3 py-2 border rounded-md mt-2"
                 placeholder="Enter minutes"
-                min={1}
+                min={currentPlan?.limits?.minCheckIntervalMinutes || 5}
                 required
               />
             )}
-            <p className="text-sm text-gray-600 mt-1">How often should this job check in?</p>
+            <p className="text-sm text-gray-600 mt-1">
+              How often should this job check in?
+              {currentPlan && currentPlan.limits.minCheckIntervalMinutes > 1 && (
+                <span className="text-blue-600 ml-1">(Your plan allows {currentPlan.limits.minCheckIntervalMinutes}-minute minimum)</span>
+              )}
+              {currentPlan && currentPlan.limits.minCheckIntervalMinutes === 1 && (
+                <span className="text-green-600 ml-1">(Your plan allows 1-minute checks! ⚡)</span>
+              )}
+            </p>
           </div>
 
           <div>
