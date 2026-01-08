@@ -1,0 +1,6 @@
+{
+  "config": {
+    "path": ["/api/ping/*"]
+  }
+}
+

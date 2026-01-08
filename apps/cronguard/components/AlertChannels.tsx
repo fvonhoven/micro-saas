@@ -240,7 +240,12 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
               />
               <p className="text-xs text-gray-500 mt-1">
                 {channelType === "slack" ? (
-                  <>Create a webhook in Slack: Workspace Settings → Apps → Incoming Webhooks</>
+                  <>
+                    <a href="https://api.slack.com/apps" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                      Create a Slack app
+                    </a>{" "}
+                    to get your webhook URL
+                  </>
                 ) : (
                   <>Create a webhook in Discord: Server Settings → Integrations → Webhooks</>
                 )}

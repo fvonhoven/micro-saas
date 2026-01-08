@@ -78,6 +78,9 @@ export default function DashboardPage() {
   const [editingMonitor, setEditingMonitor] = useState<Monitor | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [currentPlan, setCurrentPlan] = useState<any>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [selectedMonitors, setSelectedMonitors] = useState<Set<string>>(new Set())
   const [editForm, setEditForm] = useState({
     name: "",
     intervalMinutes: 1 as number | "custom",
@@ -284,6 +287,89 @@ export default function DashboardPage() {
     }
   }
 
+  const handleBulkPause = async () => {
+    if (selectedMonitors.size === 0) return
+    if (!confirm(`Are you sure you want to pause ${selectedMonitors.size} monitor(s)?`)) return
+
+    try {
+      await Promise.all(
+        Array.from(selectedMonitors).map(id =>
+          fetch(`/api/monitors/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "PAUSED" }),
+          }),
+        ),
+      )
+      setMonitors(monitors.map(m => (selectedMonitors.has(m.id) ? { ...m, status: "PAUSED" } : m)))
+      setSelectedMonitors(new Set())
+    } catch (error) {
+      console.error("Bulk pause error:", error)
+      alert("Failed to pause some monitors")
+    }
+  }
+
+  const handleBulkResume = async () => {
+    if (selectedMonitors.size === 0) return
+    if (!confirm(`Are you sure you want to resume ${selectedMonitors.size} monitor(s)?`)) return
+
+    try {
+      await Promise.all(
+        Array.from(selectedMonitors).map(id =>
+          fetch(`/api/monitors/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: "HEALTHY" }),
+          }),
+        ),
+      )
+      setMonitors(monitors.map(m => (selectedMonitors.has(m.id) ? { ...m, status: "HEALTHY" } : m)))
+      setSelectedMonitors(new Set())
+    } catch (error) {
+      console.error("Bulk resume error:", error)
+      alert("Failed to resume some monitors")
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedMonitors.size === 0) return
+    if (!confirm(`Are you sure you want to DELETE ${selectedMonitors.size} monitor(s)? This action cannot be undone.`)) return
+
+    try {
+      await Promise.all(Array.from(selectedMonitors).map(id => fetch(`/api/monitors/${id}`, { method: "DELETE" })))
+      setMonitors(monitors.filter(m => !selectedMonitors.has(m.id)))
+      setSelectedMonitors(new Set())
+    } catch (error) {
+      console.error("Bulk delete error:", error)
+      alert("Failed to delete some monitors")
+    }
+  }
+
+  const toggleSelectMonitor = (id: string) => {
+    const newSelected = new Set(selectedMonitors)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedMonitors(newSelected)
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedMonitors.size === filteredMonitors.length) {
+      setSelectedMonitors(new Set())
+    } else {
+      setSelectedMonitors(new Set(filteredMonitors.map(m => m.id)))
+    }
+  }
+
+  // Filter monitors based on search and status
+  const filteredMonitors = monitors.filter(monitor => {
+    const matchesSearch = monitor.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesStatus = statusFilter === "all" || monitor.status === statusFilter
+    return matchesSearch && matchesStatus
+  })
+
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
@@ -341,7 +427,7 @@ export default function DashboardPage() {
       </nav>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold">Your Monitors</h2>
             <Link href="/dashboard/monitors/new">
@@ -360,231 +446,397 @@ export default function DashboardPage() {
           )}
         </div>
 
+        {/* Search and Filters */}
+        {monitors.length > 0 && (
+          <div className="bg-white p-4 rounded-lg shadow-md border border-gray-100 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
+                  <svg
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search monitors..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="w-full md:w-48">
+                <select
+                  value={statusFilter}
+                  onChange={e => setStatusFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="HEALTHY">✅ Healthy</option>
+                  <option value="DOWN">🚨 Down</option>
+                  <option value="LATE">⚠️ Late</option>
+                  <option value="PAUSED">⏸️ Paused</option>
+                  <option value="PENDING">⏳ Pending</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Results count */}
+            <div className="mt-3 text-sm text-gray-600">
+              Showing {filteredMonitors.length} of {monitors.length} monitor{monitors.length !== 1 ? "s" : ""}
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Actions */}
+        {selectedMonitors.size > 0 && (
+          <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="font-semibold text-blue-900">{selectedMonitors.size} monitor(s) selected</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleBulkPause}
+                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors flex items-center gap-2"
+              >
+                <span>⏸️</span> Pause Selected
+              </button>
+              <button
+                onClick={handleBulkResume}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
+              >
+                <span>▶️</span> Resume Selected
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-2"
+              >
+                <span>🗑️</span> Delete Selected
+              </button>
+              <button
+                onClick={() => setSelectedMonitors(new Set())}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Clear Selection
+              </button>
+            </div>
+          </div>
+        )}
+
         {loadingMonitors ? (
-          <p>Loading monitors...</p>
+          <div className="bg-white p-8 rounded-lg shadow text-center">
+            <div className="flex items-center justify-center gap-3">
+              <svg className="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <p className="text-gray-600">Loading monitors...</p>
+            </div>
+          </div>
         ) : monitors.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow text-center">
-            <p className="text-gray-600 mb-4">You don't have any monitors yet.</p>
+            <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
+            </svg>
+            <p className="text-gray-600 mb-4 text-lg">You don't have any monitors yet.</p>
+            <p className="text-gray-500 mb-6">Create your first monitor to start tracking your cron jobs and scheduled tasks.</p>
             <Link href="/dashboard/monitors/new">
               <Button>Create Your First Monitor</Button>
             </Link>
           </div>
+        ) : filteredMonitors.length === 0 ? (
+          <div className="bg-white p-8 rounded-lg shadow text-center">
+            <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <p className="text-gray-600 mb-4 text-lg">No monitors match your filters</p>
+            <p className="text-gray-500 mb-6">Try adjusting your search or filter criteria.</p>
+            <button
+              onClick={() => {
+                setSearchQuery("")
+                setStatusFilter("all")
+              }}
+              className="text-blue-600 hover:underline"
+            >
+              Clear all filters
+            </button>
+          </div>
         ) : (
-          <div className="grid gap-6">
-            {monitors.map(monitor => (
-              <div key={monitor.id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100">
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    {editingId === monitor.id ? (
-                      <div className="flex gap-2 items-center">
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                          className="px-3 py-1 border rounded"
-                          autoFocus
-                          onKeyDown={e => {
-                            if (e.key === "Enter") handleSaveRename(monitor.id)
-                            if (e.key === "Escape") setEditingId(null)
-                          }}
-                        />
-                        <Button size="sm" onClick={() => handleSaveRename(monitor.id)}>
-                          Save
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex-1">
-                        <Link href={`/dashboard/monitors/${monitor.id}`} className="group">
-                          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                            {monitor.name}
-                            <svg
-                              className="w-5 h-5 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </h3>
-                        </Link>
+          <>
+            {/* Select All Checkbox */}
+            {filteredMonitors.length > 1 && (
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-4 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedMonitors.size === filteredMonitors.length && filteredMonitors.length > 0}
+                  onChange={toggleSelectAll}
+                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                />
+                <label className="text-sm font-medium text-gray-700 cursor-pointer" onClick={toggleSelectAll}>
+                  Select all {filteredMonitors.length} monitor{filteredMonitors.length !== 1 ? "s" : ""}
+                </label>
+              </div>
+            )}
 
-                        {/* Monitor Details Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                          {/* Interval & Grace */}
-                          <div className="flex items-center gap-2">
-                            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <div>
-                              <p className="text-xs text-gray-500">Interval</p>
-                              <p className="text-sm font-semibold text-gray-900">
-                                {monitor.expectedInterval >= 60 ? `${monitor.expectedInterval / 60} min` : `${monitor.expectedInterval} sec`}
-                              </p>
-                            </div>
-                            <div className="mx-2 text-gray-300">•</div>
-                            <div>
-                              <p className="text-xs text-gray-500">Grace</p>
-                              <p className="text-sm font-semibold text-gray-900">
-                                {(monitor.gracePeriod || 300) >= 60
-                                  ? `${(monitor.gracePeriod || 300) / 60} min`
-                                  : `${monitor.gracePeriod || 300} sec`}
-                              </p>
-                            </div>
-                          </div>
+            <div className="grid gap-6">
+              {filteredMonitors.map(monitor => (
+                <div key={monitor.id} className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow border border-gray-100">
+                  <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    <div className="pt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedMonitors.has(monitor.id)}
+                        onChange={() => toggleSelectMonitor(monitor.id)}
+                        className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
 
-                          {/* Alert Email */}
-                          {monitor.alertEmail && (
-                            <div className="flex items-center gap-2">
-                              <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                />
-                              </svg>
-                              <div>
-                                <p className="text-xs text-gray-500">Alert Email</p>
-                                <p className="text-sm font-semibold text-gray-900">{monitor.alertEmail}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Last Ping */}
-                          {monitor.lastPingAt && toDate(monitor.lastPingAt) && (
-                            <div className="flex items-center gap-2">
-                              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                                />
-                              </svg>
-                              <div>
-                                <p className="text-xs text-gray-500">Last Ping</p>
-                                <p className="text-sm font-semibold text-gray-900">{toDate(monitor.lastPingAt)!.toLocaleString()}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Next Expected */}
-                          {monitor.nextExpectedAt && toDate(monitor.nextExpectedAt) && (
-                            <div className="flex items-center gap-2">
-                              <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                              </svg>
-                              <div>
-                                <p className="text-xs text-gray-500">Next Expected</p>
-                                <p className="text-sm font-semibold text-gray-900">{toDate(monitor.nextExpectedAt)!.toLocaleString()}</p>
-                              </div>
-                            </div>
-                          )}
+                    <div className="flex-1">
+                      {editingId === monitor.id ? (
+                        <div className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                            className="px-3 py-1 border rounded"
+                            autoFocus
+                            onKeyDown={e => {
+                              if (e.key === "Enter") handleSaveRename(monitor.id)
+                              if (e.key === "Escape") setEditingId(null)
+                            }}
+                          />
+                          <Button size="sm" onClick={() => handleSaveRename(monitor.id)}>
+                            Save
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                            Cancel
+                          </Button>
                         </div>
-
-                        {/* Ping URL */}
-                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-3">
-                          <div className="flex items-start gap-2">
-                            <svg className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                              />
-                            </svg>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-gray-500 mb-1">Ping URL</p>
-                              <code className="block bg-white px-3 py-2 rounded border border-gray-300 text-xs text-gray-800 font-mono break-all">
-                                {typeof window !== "undefined" && window.location.origin}/api/ping/{monitor.slug}
-                              </code>
-                            </div>
-                            <div className="relative">
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(`${window.location.origin}/api/ping/${monitor.slug}`)
-                                  setCopiedId(monitor.id)
-                                  setTimeout(() => setCopiedId(null), 2000)
-                                }}
-                                className="flex-shrink-0 p-2 hover:bg-gray-200 rounded transition-colors"
-                                title="Copy to clipboard"
+                      ) : (
+                        <div className="flex-1">
+                          <Link href={`/dashboard/monitors/${monitor.id}`} className="group">
+                            <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                              {monitor.name}
+                              <svg
+                                className="w-5 h-5 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                               >
-                                {copiedId === monitor.id ? (
-                                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                ) : (
-                                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                )}
-                              </button>
-                              {copiedId === monitor.id && (
-                                <div className="absolute -top-10 right-0 bg-gray-900 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap animate-fade-in">
-                                  Copied to clipboard!
-                                  <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </h3>
+                          </Link>
+
+                          {/* Monitor Details Grid */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                            {/* Interval & Grace */}
+                            <div className="flex items-center gap-2">
+                              <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <div>
+                                <p className="text-xs text-gray-500">Interval</p>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {monitor.expectedInterval >= 60 ? `${monitor.expectedInterval / 60} min` : `${monitor.expectedInterval} sec`}
+                                </p>
+                              </div>
+                              <div className="mx-2 text-gray-300">•</div>
+                              <div>
+                                <p className="text-xs text-gray-500">Grace</p>
+                                <p className="text-sm font-semibold text-gray-900">
+                                  {(monitor.gracePeriod || 300) >= 60
+                                    ? `${(monitor.gracePeriod || 300) / 60} min`
+                                    : `${monitor.gracePeriod || 300} sec`}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Alert Email */}
+                            {monitor.alertEmail && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <div>
+                                  <p className="text-xs text-gray-500">Alert Email</p>
+                                  <p className="text-sm font-semibold text-gray-900">{monitor.alertEmail}</p>
                                 </div>
-                              )}
+                              </div>
+                            )}
+
+                            {/* Last Ping */}
+                            {monitor.lastPingAt && toDate(monitor.lastPingAt) && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <div>
+                                  <p className="text-xs text-gray-500">Last Ping</p>
+                                  <p className="text-sm font-semibold text-gray-900">{toDate(monitor.lastPingAt)!.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Next Expected */}
+                            {monitor.nextExpectedAt && toDate(monitor.nextExpectedAt) && (
+                              <div className="flex items-center gap-2">
+                                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                <div>
+                                  <p className="text-xs text-gray-500">Next Expected</p>
+                                  <p className="text-sm font-semibold text-gray-900">{toDate(monitor.nextExpectedAt)!.toLocaleString()}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Ping URL */}
+                          <div className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-lg p-3">
+                            <div className="flex items-start gap-2">
+                              <svg className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                />
+                              </svg>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-500 mb-1">Ping URL</p>
+                                <code className="block bg-white px-3 py-2 rounded border border-gray-300 text-xs text-gray-800 font-mono break-all">
+                                  {typeof window !== "undefined" && window.location.origin}/api/ping/{monitor.slug}
+                                </code>
+                              </div>
+                              <div className="relative">
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/api/ping/${monitor.slug}`)
+                                    setCopiedId(monitor.id)
+                                    setTimeout(() => setCopiedId(null), 2000)
+                                  }}
+                                  className="flex-shrink-0 p-2 hover:bg-gray-200 rounded transition-colors"
+                                  title="Copy to clipboard"
+                                >
+                                  {copiedId === monitor.id ? (
+                                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                  )}
+                                </button>
+                                {copiedId === monitor.id && (
+                                  <div className="absolute -top-10 right-0 bg-gray-900 text-white text-xs px-3 py-1.5 rounded shadow-lg whitespace-nowrap animate-fade-in">
+                                    Copied to clipboard!
+                                    <div className="absolute bottom-0 right-4 transform translate-y-1/2 rotate-45 w-2 h-2 bg-gray-900"></div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-3">
-                    <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-sm ${getStatusColor(monitor.status)}`}>{monitor.status}</span>
-                    <div className="relative">
-                      <button onClick={() => setOpenMenuId(openMenuId === monitor.id ? null : monitor.id)} className="p-2 hover:bg-gray-100 rounded">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-                      {openMenuId === monitor.id && (
-                        <>
-                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
-                            <button
-                              onClick={() => handleOpenEdit(monitor)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span>📝</span> Edit
-                            </button>
-                            <button
-                              onClick={() => handleStartRename(monitor)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span>✏️</span> Rename
-                            </button>
-                            <button
-                              onClick={() => handleTogglePause(monitor)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
-                            >
-                              <span>{monitor.status === "PAUSED" ? "▶️" : "⏸️"}</span>
-                              {monitor.status === "PAUSED" ? "Resume" : "Pause"}
-                            </button>
-                            <button
-                              onClick={() => handleDelete(monitor.id)}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600 flex items-center gap-2"
-                            >
-                              <span>🗑️</span> Delete
-                            </button>
-                          </div>
-                        </>
                       )}
+                    </div>
+                    <div className="flex flex-col items-end gap-3">
+                      <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-sm ${getStatusColor(monitor.status)}`}>{monitor.status}</span>
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === monitor.id ? null : monitor.id)}
+                          className="p-2 hover:bg-gray-100 rounded"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </button>
+                        {openMenuId === monitor.id && (
+                          <>
+                            <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-20">
+                              <button
+                                onClick={() => handleOpenEdit(monitor)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <span>📝</span> Edit
+                              </button>
+                              <button
+                                onClick={() => handleStartRename(monitor)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <span>✏️</span> Rename
+                              </button>
+                              <button
+                                onClick={() => handleTogglePause(monitor)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2"
+                              >
+                                <span>{monitor.status === "PAUSED" ? "▶️" : "⏸️"}</span>
+                                {monitor.status === "PAUSED" ? "Resume" : "Pause"}
+                              </button>
+                              <button
+                                onClick={() => handleDelete(monitor.id)}
+                                className="w-full text-left px-4 py-2 hover:bg-gray-50 text-red-600 flex items-center gap-2"
+                              >
+                                <span>🗑️</span> Delete
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
