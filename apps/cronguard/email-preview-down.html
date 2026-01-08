@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>🚨 Monitor Down: Daily Backup Job</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: #f3f4f6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .logo {
+      font-size: 28px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .tagline {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 14px;
+      margin: 8px 0 0 0;
+    }
+    .content {
+      padding: 40px 24px;
+    }
+    .footer {
+      background-color: #f9fafb;
+      padding: 24px;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+    }
+    .footer-text {
+      color: #6b7280;
+      font-size: 12px;
+      margin: 4px 0;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 600;
+      margin: 16px 0;
+    }
+    .alert-box {
+      background-color: #fef2f2;
+      border-left: 4px solid #ef4444;
+      padding: 16px;
+      margin: 24px 0;
+      border-radius: 4px;
+    }
+    .success-box {
+      background-color: #f0fdf4;
+      border-left: 4px solid #22c55e;
+      padding: 16px;
+      margin: 24px 0;
+      border-radius: 4px;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+    }
+    .info-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .info-table td:first-child {
+      font-weight: 600;
+      color: #374151;
+      width: 40%;
+    }
+    .info-table td:last-child {
+      color: #6b7280;
+    }
+    h1 {
+      color: #111827;
+      font-size: 24px;
+      margin: 0 0 16px 0;
+      font-weight: 700;
+    }
+    p {
+      color: #4b5563;
+      font-size: 16px;
+      line-height: 1.6;
+      margin: 0 0 16px 0;
+    }
+    .preview-text {
+      display: none;
+      font-size: 1px;
+      color: #ffffff;
+      line-height: 1px;
+      max-height: 0px;
+      max-width: 0px;
+      opacity: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <span class="preview-text">Daily Backup Job has not checked in and is now marked as DOWN.</span>
+  <div class="email-container">
+    <div class="header">
+      <h1 class="logo">🕵️ CronNarc</h1>
+      <p class="tagline">Keeping your cron jobs in check</p>
+    </div>
+    <div class="content">
+      
+    <div class="alert-box">
+      <h1 style="margin-top: 0;">🚨 Monitor Down</h1>
+      <p style="margin-bottom: 0; font-size: 18px;">
+        Your monitor <strong>Daily Backup Job</strong> has not checked in and is now marked as <strong style="color: #dc2626;">DOWN</strong>.
+      </p>
+    </div>
+
+    <p>Your cron job failed to send a ping within the expected timeframe. This could indicate:</p>
+    <ul style="color: #4b5563; line-height: 1.8; margin: 16px 0;">
+      <li>The cron job is not running</li>
+      <li>The cron job encountered an error</li>
+      <li>Network connectivity issues</li>
+      <li>Server or application downtime</li>
+    </ul>
+
+    <table class="info-table">
+      <tr>
+        <td>Monitor Name</td>
+        <td>Daily Backup Job</td>
+      </tr>
+      <tr>
+        <td>Last Ping</td>
+        <td>Jan 6, 2026, 2:30 PM</td>
+      </tr>
+      <tr>
+        <td>Expected By</td>
+        <td>Jan 6, 2026, 3:00 PM</td>
+      </tr>
+      <tr>
+        <td>Current Time</td>
+        <td>Jan 6, 2026, 3:15 PM</td>
+      </tr>
+    </table>
+
+    <p style="margin-top: 32px; text-align: center;">
+      <a href="http://localhost:3000/dashboard/monitors/abc123" class="button">View Monitor Details</a>
+    </p>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 32px;">
+      <strong>Next Steps:</strong><br>
+      1. Check if your cron job is running<br>
+      2. Review application logs for errors<br>
+      3. Verify network connectivity<br>
+      4. Send a test ping to verify recovery
+    </p>
+  
+    </div>
+    <div class="footer">
+      <p class="footer-text">CronNarc - Cron Job Monitoring</p>
+      <p class="footer-text">You're receiving this because you configured alerts for this monitor.</p>
+      <p class="footer-text" style="margin-top: 16px;">
+        <a href="http://localhost:3000/dashboard" style="color: #667eea; text-decoration: none;">View Dashboard</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>

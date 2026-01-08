@@ -1,5 +1,5 @@
-import { stripe } from './stripe'
-import { Product, getPlanFromPriceId } from './plans'
+import { stripe } from "./stripe"
+import { Product, getPlanFromPriceId } from "./plans"
 
 export interface UserSubscription {
   stripePriceId?: string | null
@@ -25,8 +25,8 @@ export async function createCheckoutSession({
   cancelUrl: string
 }) {
   const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    payment_method_types: ['card'],
+    mode: "subscription",
+    payment_method_types: ["card"],
     line_items: [
       {
         price: priceId,
@@ -52,13 +52,7 @@ export async function createCheckoutSession({
 /**
  * Create a Stripe billing portal session for a user to manage their subscription
  */
-export async function createBillingPortalSession({
-  customerId,
-  returnUrl,
-}: {
-  customerId: string
-  returnUrl: string
-}) {
+export async function createBillingPortalSession({ customerId, returnUrl }: { customerId: string; returnUrl: string }) {
   const session = await stripe.billingPortal.sessions.create({
     customer: customerId,
     return_url: returnUrl,
@@ -82,10 +76,28 @@ export function hasActiveSubscription(user: UserSubscription): boolean {
     return false
   }
 
-  const periodEnd = user.stripeCurrentPeriodEnd instanceof Date 
-    ? user.stripeCurrentPeriodEnd 
-    : new Date(user.stripeCurrentPeriodEnd)
+  const periodEnd = user.stripeCurrentPeriodEnd instanceof Date ? user.stripeCurrentPeriodEnd : new Date(user.stripeCurrentPeriodEnd)
 
   return periodEnd > new Date()
 }
 
+/**
+ * Update a user's subscription to a new plan
+ */
+export async function updateSubscription({ subscriptionId, newPriceId }: { subscriptionId: string; newPriceId: string }) {
+  // Retrieve the current subscription
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+
+  // Update the subscription with the new price
+  const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+    items: [
+      {
+        id: subscription.items.data[0].id,
+        price: newPriceId,
+      },
+    ],
+    proration_behavior: "always_invoice", // Charge/credit immediately for the difference
+  })
+
+  return updatedSubscription
+}

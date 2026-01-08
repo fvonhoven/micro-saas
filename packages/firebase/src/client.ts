@@ -1,7 +1,7 @@
 "use client"
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
-import { getAuth, type Auth } from "firebase/auth"
+import { getAuth, setPersistence, browserLocalPersistence, type Auth } from "firebase/auth"
 import { getFirestore, type Firestore } from "firebase/firestore"
 import { getStorage, type FirebaseStorage } from "firebase/storage"
 
@@ -22,8 +22,15 @@ let storage: FirebaseStorage
 if (typeof window !== "undefined") {
   app = getApps().length ? getApps()[0]! : initializeApp(firebaseConfig)
   auth = getAuth(app)
+
+  // Set persistence to LOCAL (persists across browser sessions)
+  setPersistence(auth, browserLocalPersistence).catch(error => {
+    console.error("Error setting auth persistence:", error)
+  })
+
   db = getFirestore(app)
   storage = getStorage(app)
 }
 
+// @ts-ignore - These are initialized on the client side
 export { app, auth, db, storage }

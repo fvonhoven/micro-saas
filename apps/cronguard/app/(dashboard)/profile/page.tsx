@@ -8,6 +8,7 @@ import Link from "next/link"
 import { signOut } from "firebase/auth"
 import { auth, db } from "@repo/firebase/client"
 import { doc, getDoc } from "firebase/firestore"
+import { PLAN_METADATA } from "@repo/billing/client"
 
 export default function ProfilePage() {
   const { user, loading } = useAuthContext()
@@ -15,6 +16,10 @@ export default function ProfilePage() {
   const [currentPlan, setCurrentPlan] = useState<any>(null)
   const [subscriptionData, setSubscriptionData] = useState<any>(null)
   const [loadingPortal, setLoadingPortal] = useState(false)
+  const [showPlanChange, setShowPlanChange] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<string>("")
+  const [selectedCycle, setSelectedCycle] = useState<"monthly" | "annual">("annual")
+  const [changingPlan, setChangingPlan] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -67,6 +72,38 @@ export default function ProfilePage() {
     }
   }
 
+  const handleChangePlan = async () => {
+    if (!selectedPlan) return
+
+    setChangingPlan(true)
+    try {
+      const response = await fetch("/api/billing/change-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: selectedPlan,
+          billingCycle: selectedCycle,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(`Successfully changed to ${data.newPlan} plan!`)
+        setShowPlanChange(false)
+        // Refresh user data
+        await fetchUserData()
+      } else {
+        alert(data.error || "Failed to change plan")
+      }
+    } catch (error) {
+      console.error("Error changing plan:", error)
+      alert("Failed to change plan. Please try again.")
+    } finally {
+      setChangingPlan(false)
+    }
+  }
+
   const handleLogout = async () => {
     await signOut(auth)
     router.push("/login")
@@ -86,7 +123,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">CronGuard</h1>
+          <h1 className="text-xl font-bold">CronNarc</h1>
           <div className="flex gap-4 items-center">
             <Link href="/dashboard">
               <Button variant="outline" size="sm">
@@ -110,10 +147,6 @@ export default function ProfilePage() {
             <div>
               <label className="text-sm text-gray-600">Email</label>
               <p className="font-medium">{user.email}</p>
-            </div>
-            <div>
-              <label className="text-sm text-gray-600">User ID</label>
-              <p className="font-mono text-sm text-gray-700">{user.uid}</p>
             </div>
           </div>
         </div>
@@ -148,19 +181,146 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  <div className="pt-4 border-t">
-                    <Button onClick={handleManageBilling} disabled={loadingPortal}>
-                      {loadingPortal ? "Loading..." : "Manage Subscription"}
-                    </Button>
-                    <p className="text-sm text-gray-500 mt-2">Update payment method, view invoices, or cancel subscription</p>
+                  <div className="pt-4 border-t space-y-3">
+                    <div className="flex gap-3">
+                      <Button onClick={() => setShowPlanChange(!showPlanChange)} variant="outline">
+                        {showPlanChange ? "Cancel" : "Change Plan"}
+                      </Button>
+                      <Button onClick={handleManageBilling} disabled={loadingPortal} variant="outline">
+                        {loadingPortal ? "Loading..." : "Manage Billing"}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {showPlanChange ? "Select a new plan below" : "Update payment method, view invoices, or cancel subscription"}
+                    </p>
+
+                    {showPlanChange && (
+                      <div className="bg-gray-50 rounded-lg p-4 mt-4 space-y-4">
+                        <h4 className="font-semibold text-gray-900">Select New Plan</h4>
+
+                        {/* Billing Cycle Toggle */}
+                        <div>
+                          <label className="text-sm text-gray-600 mb-2 block">Billing Cycle</label>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setSelectedCycle("monthly")}
+                              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                selectedCycle === "monthly"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                              }`}
+                            >
+                              Monthly
+                            </button>
+                            <button
+                              onClick={() => setSelectedCycle("annual")}
+                              className={`relative px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                selectedCycle === "annual"
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                              }`}
+                            >
+                              Annual{" "}
+                              <span className={`text-xs font-semibold ${selectedCycle === "annual" ? "text-blue-100" : "text-green-600"}`}>
+                                💰 Save 25%
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Plan Options */}
+                        <div className="space-y-2">
+                          {Object.entries(PLAN_METADATA.cronguard)
+                            .filter(([key]) => key !== "free")
+                            .map(([key, plan]) => {
+                              const price = selectedCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice
+                              const isCurrentPlan = currentPlan.name === plan.name
+                              return (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedPlan(key)}
+                                  disabled={isCurrentPlan}
+                                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                                    selectedPlan === key
+                                      ? "border-blue-600 bg-blue-50"
+                                      : isCurrentPlan
+                                        ? "border-gray-200 bg-gray-100 cursor-not-allowed opacity-60"
+                                        : "border-gray-200 hover:border-blue-300 bg-white"
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <h5 className="font-semibold text-gray-900">
+                                        {plan.name}
+                                        {isCurrentPlan && <span className="ml-2 text-xs text-gray-500">(Current)</span>}
+                                      </h5>
+                                      <p className="text-sm text-gray-600">
+                                        {plan.limits.monitors} monitors • {plan.limits.minCheckIntervalMinutes}-min intervals
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-2xl font-bold text-gray-900">${price}</p>
+                                      <p className="text-xs text-gray-500">per month</p>
+                                    </div>
+                                  </div>
+                                </button>
+                              )
+                            })}
+                        </div>
+
+                        <Button onClick={handleChangePlan} disabled={!selectedPlan || changingPlan} className="w-full">
+                          {changingPlan ? "Updating..." : "Confirm Plan Change"}
+                        </Button>
+                        <p className="text-xs text-gray-500 text-center">You'll be charged or credited the prorated difference immediately</p>
+                      </div>
+                    )}
                   </div>
                 </>
               ) : (
                 <div className="pt-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">🚀 Upgrade Your Plan</h4>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Get access to more monitors, faster check intervals (1-minute checks!), and priority support.
+                    </p>
+                    <ul className="text-sm text-gray-700 space-y-2 mb-4">
+                      <li className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Up to 100 monitors (Team plan)
+                      </li>
+                      <li className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        1-minute check intervals (Pro & Team)
+                      </li>
+                      <li className="flex items-center">
+                        <svg className="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Save 25% with annual billing
+                      </li>
+                    </ul>
+                  </div>
                   <Link href="/pricing">
-                    <Button>Upgrade to Pro</Button>
+                    <Button size="lg" className="w-full">
+                      View Plans & Upgrade →
+                    </Button>
                   </Link>
-                  <p className="text-sm text-gray-500 mt-2">Unlock more monitors and faster check intervals</p>
                 </div>
               )}
             </div>

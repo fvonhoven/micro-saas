@@ -1,8 +1,7 @@
 import { adminDb } from "@repo/firebase/admin"
 import { NextRequest, NextResponse } from "next/server"
-import { Resend } from "resend"
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { monitorRecoveryEmail } from "../../../../lib/email-templates"
+import { sendAlertToChannels, type AlertChannel, type AlertPayload } from "../../../../lib/alert-channels"
 
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -44,55 +43,111 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
     await batch.commit()
 
-    // Send recovery email if monitor was down
-    if (wasDown && monitor.alertEmail && resend) {
+    // Resolve any ongoing incidents when monitor recovers
+    if (wasDown) {
       try {
-        // Find the most recent unresolved incident
-        const incidentsSnapshot = await monitorDoc.ref
-          .collection("incidents")
-          .where("resolvedAt", "==", null)
-          .orderBy("startedAt", "desc")
-          .limit(1)
-          .get()
+        // Find all unresolved incidents (no orderBy to avoid needing composite index)
+        const incidentsSnapshot = await monitorDoc.ref.collection("incidents").where("resolvedAt", "==", null).get()
 
         if (!incidentsSnapshot.empty) {
-          const incidentDoc = incidentsSnapshot.docs[0]!
-          const incident = incidentDoc.data()
+          // Resolve all unresolved incidents
+          const resolveBatch = adminDb.batch()
+          let mostRecentIncident = null
+          let mostRecentStartTime = 0
 
-          // Mark incident as resolved
-          await incidentDoc.ref.update({
-            resolvedAt: now,
-            duration: now.getTime() - incident.startedAt.toDate().getTime(),
-          })
+          for (const incidentDoc of incidentsSnapshot.docs) {
+            const incident = incidentDoc.data()
+            const startTime = incident.startedAt.toDate().getTime()
 
-          // Send recovery email
-          const downtime = Math.round((now.getTime() - incident.startedAt.toDate().getTime()) / 1000 / 60)
-          const startedAt = incident.startedAt.toDate()
-          const timezone = monitor.timezone || "UTC"
+            // Track the most recent incident for email
+            if (startTime > mostRecentStartTime) {
+              mostRecentIncident = { doc: incidentDoc, data: incident }
+              mostRecentStartTime = startTime
+            }
 
-          const formatTime = (date: Date) => {
-            return new Intl.DateTimeFormat("en-US", {
-              timeZone: timezone,
-              dateStyle: "medium",
-              timeStyle: "short",
-            }).format(date)
+            // Resolve this incident
+            resolveBatch.update(incidentDoc.ref, {
+              resolvedAt: now,
+              duration: now.getTime() - startTime,
+            })
           }
 
-          await resend.emails.send({
-            from: "onboarding@resend.dev",
-            to: monitor.alertEmail,
-            subject: `✅ Monitor Recovered: ${monitor.name}`,
-            html: `
-              <h1>Monitor Recovered</h1>
-              <p>Your monitor <strong>${monitor.name}</strong> has recovered and is now HEALTHY.</p>
-              <p><strong>Went down:</strong> ${formatTime(startedAt)}</p>
-              <p><strong>Recovered:</strong> ${formatTime(now)}</p>
-              <p><strong>Downtime:</strong> ${downtime} minute${downtime !== 1 ? "s" : ""}</p>
-            `,
-          })
+          await resolveBatch.commit()
+
+          // Send recovery alerts for the most recent incident
+          if (mostRecentIncident) {
+            try {
+              // Get all enabled alert channels
+              const channelsSnapshot = await monitorDoc.ref.collection("channels").where("enabled", "==", true).get()
+
+              const channels: AlertChannel[] = channelsSnapshot.docs.map(channelDoc => ({
+                id: channelDoc.id,
+                type: channelDoc.data().type,
+                name: channelDoc.data().name,
+                enabled: channelDoc.data().enabled,
+                config: channelDoc.data().config,
+                createdAt: channelDoc.data().createdAt?.toDate() || new Date(),
+                updatedAt: channelDoc.data().updatedAt?.toDate() || new Date(),
+              }))
+
+              if (channels.length > 0) {
+                const incident = mostRecentIncident.data
+
+                // Calculate downtime
+                const downtimeMinutes = Math.round((now.getTime() - incident.startedAt.toDate().getTime()) / 1000 / 60)
+                const startedAt = incident.startedAt.toDate()
+                const timezone = monitor.timezone || "UTC"
+
+                const formatTime = (date: Date) => {
+                  return new Intl.DateTimeFormat("en-US", {
+                    timeZone: timezone,
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  }).format(date)
+                }
+
+                // Get base URL for links
+                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+                const monitorUrl = `${baseUrl}/dashboard/monitors/${monitorDoc.id}`
+                const dashboardUrl = `${baseUrl}/dashboard`
+
+                // Prepare alert payload
+                const payload: AlertPayload = {
+                  monitorId: monitorDoc.id,
+                  monitorName: monitor.name,
+                  monitorSlug: monitor.slug,
+                  event: "recovery",
+                  timestamp: now.toISOString(),
+                  details: {
+                    wentDownAt: formatTime(startedAt),
+                    recoveredAt: formatTime(now),
+                    downtimeMinutes,
+                  },
+                }
+
+                // Generate email HTML for email channels
+                const emailHtml = monitorRecoveryEmail({
+                  monitorName: monitor.name,
+                  monitorUrl,
+                  wentDownAt: formatTime(startedAt),
+                  recoveredAt: formatTime(now),
+                  downtimeMinutes,
+                  dashboardUrl,
+                })
+
+                const emailSubject = `✅ Monitor Recovered: ${monitor.name}`
+
+                // Send to all channels
+                const result = await sendAlertToChannels(channels, payload, emailHtml, emailSubject)
+                console.log(`Monitor ${monitor.name} recovered - alerts sent to ${result.success} channels (${result.failed} failed)`)
+              }
+            } catch (alertError) {
+              console.error(`Failed to send recovery alerts for ${monitor.name}:`, alertError)
+            }
+          }
         }
-      } catch (emailError) {
-        console.error(`Failed to send recovery email for ${monitor.name}:`, emailError)
+      } catch (incidentError) {
+        console.error(`Failed to resolve incidents for ${monitor.name}:`, incidentError)
       }
     }
 

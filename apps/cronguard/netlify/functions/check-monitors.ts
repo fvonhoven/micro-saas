@@ -1,7 +1,8 @@
 import { schedule } from "@netlify/functions"
 import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
-import { Resend } from "resend"
+import { monitorDownEmail } from "../../lib/email-templates"
+import { sendAlertToChannels, type AlertChannel, type AlertPayload } from "../../lib/alert-channels"
 
 // Initialize Firebase Admin
 if (!getApps().length) {
@@ -15,7 +16,6 @@ if (!getApps().length) {
 }
 
 const db = getFirestore()
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // Run every 1 minute for accurate monitoring
 // * * * * * for every minute
@@ -73,11 +73,24 @@ const handler = schedule("*/5 * * * *", async () => {
           await doc.ref.collection("incidents").add({
             startedAt: now,
             resolvedAt: null,
-            alertsSent: { email: true },
+            alertsSent: {},
           })
 
-          // Send alert email
-          if (monitor.alertEmail && resend) {
+          // Get all alert channels for this monitor
+          const channelsSnapshot = await doc.ref.collection("channels").where("enabled", "==", true).get()
+
+          const channels: AlertChannel[] = channelsSnapshot.docs.map(channelDoc => ({
+            id: channelDoc.id,
+            type: channelDoc.data().type,
+            name: channelDoc.data().name,
+            enabled: channelDoc.data().enabled,
+            config: channelDoc.data().config,
+            createdAt: channelDoc.data().createdAt?.toDate() || new Date(),
+            updatedAt: channelDoc.data().updatedAt?.toDate() || new Date(),
+          }))
+
+          // Send alerts to all channels
+          if (channels.length > 0) {
             try {
               const lastPingTime = monitor.lastPingAt ? monitor.lastPingAt.toDate() : null
               const expectedTime = monitor.nextExpectedAt.toDate()
@@ -91,25 +104,45 @@ const handler = schedule("*/5 * * * *", async () => {
                 }).format(date)
               }
 
-              await resend.emails.send({
-                from: "onboarding@resend.dev",
-                to: monitor.alertEmail,
-                subject: `🚨 Monitor Down: ${monitor.name}`,
-                html: `
-                  <h1>Monitor Alert</h1>
-                  <p>Your monitor <strong>${monitor.name}</strong> has not checked in and is now marked as DOWN.</p>
-                  <p><strong>Last ping:</strong> ${lastPingTime ? formatTime(lastPingTime) : "Never"}</p>
-                  <p><strong>Expected by:</strong> ${formatTime(expectedTime)}</p>
-                  <p><strong>Current time:</strong> ${formatTime(now)}</p>
-                  <p>Please check your cron job immediately.</p>
-                `,
+              // Get base URL for links
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+              const monitorUrl = `${baseUrl}/dashboard/monitors/${doc.id}`
+              const dashboardUrl = `${baseUrl}/dashboard`
+
+              // Prepare alert payload
+              const payload: AlertPayload = {
+                monitorId: doc.id,
+                monitorName: monitor.name,
+                monitorSlug: monitor.slug,
+                event: "down",
+                timestamp: now.toISOString(),
+                details: {
+                  lastPingAt: lastPingTime ? formatTime(lastPingTime) : undefined,
+                  expectedBy: formatTime(expectedTime),
+                  currentTime: formatTime(now),
+                },
+              }
+
+              // Generate email HTML for email channels
+              const emailHtml = monitorDownEmail({
+                monitorName: monitor.name,
+                monitorUrl,
+                lastPingAt: lastPingTime ? formatTime(lastPingTime) : null,
+                expectedBy: formatTime(expectedTime),
+                currentTime: formatTime(now),
+                dashboardUrl,
               })
-              console.log(`Monitor ${monitor.name} is DOWN - alert sent to ${monitor.alertEmail}`)
-            } catch (emailError) {
-              console.error(`Failed to send email for ${monitor.name}:`, emailError)
+
+              const emailSubject = `🚨 Monitor Down: ${monitor.name}`
+
+              // Send to all channels
+              const result = await sendAlertToChannels(channels, payload, emailHtml, emailSubject)
+              console.log(`Monitor ${monitor.name} is DOWN - alerts sent to ${result.success} channels (${result.failed} failed)`)
+            } catch (alertError) {
+              console.error(`Failed to send alerts for ${monitor.name}:`, alertError)
             }
           } else {
-            console.log(`Monitor ${monitor.name} is DOWN - no alert sent (${!monitor.alertEmail ? "no email configured" : "Resend not configured"})`)
+            console.log(`Monitor ${monitor.name} is DOWN - no alert channels configured`)
           }
         } else {
           console.log(`Monitor ${monitor.name} is still DOWN (no new alert sent)`)

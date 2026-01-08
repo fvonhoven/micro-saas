@@ -307,7 +307,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">CronGuard</h1>
+          <h1 className="text-xl font-bold">CronNarc</h1>
           <div className="flex gap-4 items-center">
             {currentPlan && (
               <div className="text-sm">
@@ -397,7 +397,19 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-900 mb-3">{monitor.name}</h3>
+                        <Link href={`/dashboard/monitors/${monitor.id}`} className="group">
+                          <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                            {monitor.name}
+                            <svg
+                              className="w-5 h-5 inline-block ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </h3>
+                        </Link>
 
                         {/* Monitor Details Grid */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">

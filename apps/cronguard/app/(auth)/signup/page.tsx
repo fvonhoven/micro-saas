@@ -53,7 +53,7 @@ export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow">
-        <h1 className="text-2xl font-bold mb-6">Create your CronGuard account</h1>
+        <h1 className="text-2xl font-bold mb-6">Create your CronNarc account</h1>
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded mb-4">{error}</div>}
 

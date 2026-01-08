@@ -111,7 +111,7 @@ export default function NewMonitorPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold">CronGuard</h1>
+          <h1 className="text-xl font-bold">CronNarc</h1>
         </div>
       </nav>
 

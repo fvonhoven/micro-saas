@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Template Preview - CronNarc</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f3f4f6;
+      padding: 40px 20px;
+      margin: 0;
+    }
+    .preview-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      color: #111827;
+      margin-bottom: 40px;
+    }
+    .email-preview {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 40px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .email-preview h2 {
+      margin-top: 0;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+      padding-bottom: 10px;
+    }
+    iframe {
+      width: 100%;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      min-height: 600px;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 20px;
+      background: #f3f4f6;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7280;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .email-content {
+      display: none;
+    }
+    .email-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="preview-container">
+    <h1>📧 CronNarc Email Templates Preview</h1>
+    
+    <div class="tabs">
+      <button class="tab active" onclick="showEmail('down')">🚨 Monitor Down Alert</button>
+      <button class="tab" onclick="showEmail('recovery')">✅ Monitor Recovery</button>
+    </div>
+
+    <div id="down-email" class="email-content active">
+      <div class="email-preview">
+        <h2>Monitor Down Alert Email</h2>
+        <p>Sent when a monitor fails to check in within the expected timeframe.</p>
+        <iframe id="down-frame"></iframe>
+      </div>
+    </div>
+
+    <div id="recovery-email" class="email-content">
+      <div class="email-preview">
+        <h2>Monitor Recovery Email</h2>
+        <p>Sent when a monitor recovers and checks in successfully after being down.</p>
+        <iframe id="recovery-frame"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import the email templates
+    import { monitorDownEmail, monitorRecoveryEmail } from './lib/email-templates.ts';
+
+    // Generate sample emails
+    const downHtml = monitorDownEmail({
+      monitorName: 'Daily Backup Job',
+      monitorUrl: 'http://localhost:3000/dashboard/monitors/abc123',
+      lastPingAt: 'Jan 6, 2026, 2:30 PM',
+      expectedBy: 'Jan 6, 2026, 3:00 PM',
+      currentTime: 'Jan 6, 2026, 3:15 PM',
+      dashboardUrl: 'http://localhost:3000/dashboard',
+    });
+
+    const recoveryHtml = monitorRecoveryEmail({
+      monitorName: 'Daily Backup Job',
+      monitorUrl: 'http://localhost:3000/dashboard/monitors/abc123',
+      wentDownAt: 'Jan 6, 2026, 3:00 PM',
+      recoveredAt: 'Jan 6, 2026, 4:30 PM',
+      downtimeMinutes: 90,
+      dashboardUrl: 'http://localhost:3000/dashboard',
+    });
+
+    // Load emails into iframes
+    const downFrame = document.getElementById('down-frame');
+    const recoveryFrame = document.getElementById('recovery-frame');
+
+    downFrame.srcdoc = downHtml;
+    recoveryFrame.srcdoc = recoveryHtml;
+
+    // Tab switching
+    window.showEmail = function(type) {
+      // Update tabs
+      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Update content
+      document.querySelectorAll('.email-content').forEach(content => content.classList.remove('active'));
+      document.getElementById(`${type}-email`).classList.add('active');
+    };
+  </script>
+</body>
+</html>
+

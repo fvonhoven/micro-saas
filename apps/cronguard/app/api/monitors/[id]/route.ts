@@ -2,6 +2,10 @@ import { adminDb, adminAuth } from "@repo/firebase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { z } from "zod"
+import { Resend } from "resend"
+import { monitorPausedEmail, monitorResumedEmail } from "@/lib/email-templates"
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 async function getUserFromSession(req: NextRequest) {
   const cookieStore = cookies()
@@ -26,6 +30,9 @@ const updateMonitorSchema = z.object({
   gracePeriod: z.number().min(0).optional(),
   alertEmail: z.string().email().optional().or(z.literal("")),
   timezone: z.string().optional(),
+  statusPageEnabled: z.boolean().optional(),
+  statusPageTitle: z.string().max(100).optional(),
+  statusPageDescription: z.string().max(500).optional(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -48,6 +55,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const monitor = monitorDoc.data()
     const updateData: any = { ...data }
 
+    // Track if status is changing to/from PAUSED for email notifications
+    const oldStatus = monitor?.status
+    const newStatus = data.status
+    const statusChangedToPaused = oldStatus !== "PAUSED" && newStatus === "PAUSED"
+    const statusChangedFromPaused = oldStatus === "PAUSED" && newStatus && newStatus !== "PAUSED"
+
     // If expectedInterval changed, recalculate nextExpectedAt
     if (data.expectedInterval && monitor?.lastPingAt) {
       const lastPing = monitor.lastPingAt.toDate()
@@ -58,6 +71,53 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await adminDb.collection("monitors").doc(id).update(updateData)
 
     const updatedDoc = await adminDb.collection("monitors").doc(id).get()
+    const updatedMonitor = updatedDoc.data()
+
+    // Send email notifications for pause/resume
+    if (resend && updatedMonitor?.alertEmail) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      const monitorUrl = `${baseUrl}/dashboard/monitors/${id}`
+      const dashboardUrl = `${baseUrl}/dashboard`
+
+      try {
+        if (statusChangedToPaused) {
+          // Send pause notification
+          const emailHtml = monitorPausedEmail({
+            monitorName: updatedMonitor.name,
+            monitorUrl,
+            pausedBy: user.email || "You",
+            dashboardUrl,
+          })
+
+          await resend.emails.send({
+            from: "CronNarc <noreply@cronnarc.com>",
+            to: updatedMonitor.alertEmail,
+            subject: `⏸️ Monitor Paused: ${updatedMonitor.name}`,
+            html: emailHtml,
+          })
+          console.log(`Pause notification sent for ${updatedMonitor.name}`)
+        } else if (statusChangedFromPaused) {
+          // Send resume notification
+          const emailHtml = monitorResumedEmail({
+            monitorName: updatedMonitor.name,
+            monitorUrl,
+            resumedBy: user.email || "You",
+            dashboardUrl,
+          })
+
+          await resend.emails.send({
+            from: "CronNarc <noreply@cronnarc.com>",
+            to: updatedMonitor.alertEmail,
+            subject: `▶️ Monitor Resumed: ${updatedMonitor.name}`,
+            html: emailHtml,
+          })
+          console.log(`Resume notification sent for ${updatedMonitor.name}`)
+        }
+      } catch (emailError) {
+        console.error(`Failed to send pause/resume email for ${updatedMonitor.name}:`, emailError)
+        // Don't fail the request if email fails
+      }
+    }
 
     return NextResponse.json({
       monitor: { id: updatedDoc.id, ...updatedDoc.data() },
