@@ -2,13 +2,27 @@
 
 ## Overview
 
-CronNarc uses **Netlify Edge Functions** for rate limiting the ping endpoint. This provides:
+CronNarc uses **Netlify Edge Functions** for rate limiting public endpoints. This provides:
 
 - ✅ **Zero external dependencies** (no Redis, no database)
 - ✅ **Runs at the edge** (before hitting Next.js API routes)
 - ✅ **Low latency** (Deno runtime on Netlify's global CDN)
 - ✅ **Automatic scaling** (handled by Netlify)
 - ✅ **Simple configuration** (just edit a TypeScript file)
+
+## Protected Endpoints
+
+### 1. Ping Endpoint (`/api/ping/*`)
+
+- **Limit:** 10 pings per minute per monitor
+- **Key:** Monitor slug
+- **Purpose:** Prevent abuse of the ping endpoint
+
+### 2. Status Pages (`/status/*` and `/api/status/*`)
+
+- **Limit:** 60 requests per minute per IP
+- **Key:** Client IP address
+- **Purpose:** Prevent scraping and DDoS attacks on public status pages
 
 ## How It Works
 
@@ -24,11 +38,17 @@ Cron Job → Netlify Edge (rate-limit-ping.ts) → Next.js API (/api/ping/[slug]
 
 ### Rate Limit Configuration
 
-**Default Limits:**
-- **10 pings per minute** per monitor
-- **1-minute sliding window**
+**Ping Endpoint:**
 
-**Location:** `netlify/edge-functions/rate-limit-ping.ts`
+- **Limit:** 10 pings per minute per monitor
+- **Window:** 1 minute sliding window
+- **Location:** `netlify/edge-functions/rate-limit-ping.ts`
+
+**Status Pages:**
+
+- **Limit:** 60 requests per minute per IP
+- **Window:** 1 minute sliding window
+- **Location:** `netlify/edge-functions/rate-limit-status.ts`
 
 ### How Rate Limiting Works
 
@@ -48,6 +68,8 @@ Cron Job → Netlify Edge (rate-limit-ping.ts) → Next.js API (/api/ping/[slug]
 
 ### Adjusting Rate Limits
 
+#### Ping Endpoint
+
 Edit `netlify/edge-functions/rate-limit-ping.ts`:
 
 ```typescript
@@ -59,19 +81,46 @@ const MAX_REQUESTS_PER_WINDOW = 10 // 10 pings per minute
 **Examples:**
 
 **More restrictive (5 pings per minute):**
+
 ```typescript
 const MAX_REQUESTS_PER_WINDOW = 5
 ```
 
 **Less restrictive (30 pings per minute):**
+
 ```typescript
 const MAX_REQUESTS_PER_WINDOW = 30
 ```
 
 **Longer window (5 minutes):**
+
 ```typescript
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000
 const MAX_REQUESTS_PER_WINDOW = 50 // 50 pings per 5 minutes
+```
+
+#### Status Pages
+
+Edit `netlify/edge-functions/rate-limit-status.ts`:
+
+```typescript
+// Change these values:
+const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 60 // 60 requests per minute (1 per second)
+```
+
+**Examples:**
+
+**More restrictive (30 requests per minute):**
+
+```typescript
+const MAX_REQUESTS_PER_WINDOW = 30
+```
+
+**Less restrictive (120 requests per minute):**
+
+```typescript
+const MAX_REQUESTS_PER_WINDOW = 120
 ```
 
 ### Response Headers
@@ -88,6 +137,7 @@ X-RateLimit-Reset: 1704729600000
 ```
 
 **Response Body:**
+
 ```json
 {
   "error": "Rate limit exceeded",
@@ -120,6 +170,7 @@ done
 ```
 
 **Expected result:**
+
 - First 10 requests: `200 OK`
 - 11th request: `429 Too Many Requests`
 
@@ -128,6 +179,7 @@ done
 ### Netlify Dashboard
 
 View Edge Function logs:
+
 1. Go to Netlify Dashboard
 2. Select your site
 3. Navigate to **Functions** → **Edge Functions**
@@ -145,6 +197,7 @@ View Edge Function logs:
 ### ✅ Netlify Edge Functions (Current Implementation)
 
 **Pros:**
+
 - No external dependencies
 - No additional cost
 - Runs at the edge (low latency)
@@ -152,6 +205,7 @@ View Edge Function logs:
 - Automatic scaling
 
 **Cons:**
+
 - In-memory storage (resets on cold starts)
 - Less precise than Redis-backed solutions
 - Can't share state across edge locations
@@ -159,11 +213,13 @@ View Edge Function logs:
 ### ❌ Upstash Redis
 
 **Pros:**
+
 - Persistent storage
 - More precise rate limiting
 - Shared state globally
 
 **Cons:**
+
 - External dependency
 - Additional cost (~$10/month)
 - Requires environment variables
@@ -172,11 +228,13 @@ View Edge Function logs:
 ### ❌ Cloudflare
 
 **Pros:**
+
 - Very robust
 - DDoS protection
 - Global CDN
 
 **Cons:**
+
 - Requires DNS change
 - Another service to manage
 - Rate limiting rules can be complex
@@ -184,14 +242,18 @@ View Edge Function logs:
 ## Recommendations
 
 ### For Most Users (Current Setup)
+
 The **Netlify Edge Function** approach is perfect for:
+
 - Small to medium deployments
 - Preventing accidental abuse
 - Simple configuration
 - Zero additional cost
 
 ### For High-Volume Users
+
 If you expect **>1000 monitors** or need more precise rate limiting:
+
 - Consider **Upstash Redis** for persistent, global rate limiting
 - Or use **Cloudflare** for enterprise-grade protection
 
@@ -200,6 +262,7 @@ If you expect **>1000 monitors** or need more precise rate limiting:
 ### Edge Function Not Working
 
 1. **Check deployment:**
+
    ```bash
    netlify functions:list
    ```
@@ -216,11 +279,13 @@ If you expect **>1000 monitors** or need more precise rate limiting:
 If legitimate cron jobs are being blocked:
 
 1. **Increase the limit:**
+
    ```typescript
    const MAX_REQUESTS_PER_WINDOW = 20 // or higher
    ```
 
 2. **Increase the window:**
+
    ```typescript
    const RATE_LIMIT_WINDOW_MS = 2 * 60 * 1000 // 2 minutes
    ```
@@ -235,6 +300,7 @@ If legitimate cron jobs are being blocked:
 If you're seeing abuse:
 
 1. **Decrease the limit:**
+
    ```typescript
    const MAX_REQUESTS_PER_WINDOW = 5
    ```
@@ -254,4 +320,3 @@ Potential improvements:
 3. **Persistent storage** - Use Netlify Blobs or KV for state
 4. **Analytics** - Track rate limit hits in dashboard
 5. **Allowlist** - Bypass rate limits for trusted IPs
-

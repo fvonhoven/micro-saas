@@ -1,0 +1,6 @@
+{
+  "config": {
+    "path": ["/status/*", "/api/status/*"]
+  }
+}
+

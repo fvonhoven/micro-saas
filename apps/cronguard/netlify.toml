@@ -12,3 +12,11 @@
   path = "/api/ping/*"
   function = "rate-limit-ping"
 
+[[edge_functions]]
+  path = "/status/*"
+  function = "rate-limit-status"
+
+[[edge_functions]]
+  path = "/api/status/*"
+  function = "rate-limit-status"
+

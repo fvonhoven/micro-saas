@@ -72,7 +72,8 @@ Add these to Netlify Dashboard → Site Settings → Environment Variables:
 ### Rate Limiting
 
 - [x] **Netlify Edge Function rate limiting implemented**
-  - Limits: 10 pings per minute per monitor
+  - **Ping Endpoint:** 10 pings per minute per monitor
+  - **Status Pages:** 60 requests per minute per IP
   - Runs at the edge (before hitting Next.js)
   - No external dependencies required
   - Returns 429 with `Retry-After` header when exceeded
@@ -80,16 +81,14 @@ Add these to Netlify Dashboard → Site Settings → Environment Variables:
 
 **Configuration:**
 
-- File: `netlify/edge-functions/rate-limit-ping.ts`
-- Limits: `MAX_REQUESTS_PER_WINDOW = 10` (adjustable)
-- Window: `RATE_LIMIT_WINDOW_MS = 60000` (1 minute)
+- Ping: `netlify/edge-functions/rate-limit-ping.ts`
+- Status: `netlify/edge-functions/rate-limit-status.ts`
 
-**To adjust limits**, edit `netlify/edge-functions/rate-limit-ping.ts`:
+**Protected Endpoints:**
 
-```typescript
-const MAX_REQUESTS_PER_WINDOW = 10 // Change this value
-const RATE_LIMIT_WINDOW_MS = 60 * 1000 // Change this value
-```
+- `/api/ping/*` - Prevents ping abuse
+- `/status/*` - Prevents status page scraping
+- `/api/status/*` - Prevents API abuse
 
 ### Input Validation
 
