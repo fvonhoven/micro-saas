@@ -153,7 +153,9 @@ export function emailLayout({ title, previewText, content }: EmailLayoutProps): 
       <p class="footer-text">CronNarc - Cron Job Monitoring</p>
       <p class="footer-text">You're receiving this because you configured alerts for this monitor.</p>
       <p class="footer-text" style="margin-top: 16px;">
-        <a href="{{dashboardUrl}}" style="color: #667eea; text-decoration: none;">View Dashboard</a>
+        <a href="{{dashboardUrl}}" style="color: #667eea; text-decoration: none; margin-right: 16px;">View Dashboard</a>
+        <a href="{{dashboardUrl}}/terms" style="color: #9ca3af; text-decoration: none; margin-right: 12px; font-size: 12px;">Terms</a>
+        <a href="{{dashboardUrl}}/privacy" style="color: #9ca3af; text-decoration: none; font-size: 12px;">Privacy</a>
       </p>
     </div>
   </div>

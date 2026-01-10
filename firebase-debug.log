@@ -1,25 +1,70 @@
-[debug] [2026-01-05T19:45:27.643Z] ----------------------------------------------------------------------
-[debug] [2026-01-05T19:45:27.644Z] Command:       /Users/Frank/.nvm/versions/node/v20.19.4/bin/node /opt/homebrew/bin/firebase projects:list
-[debug] [2026-01-05T19:45:27.644Z] CLI Version:   11.21.0
-[debug] [2026-01-05T19:45:27.644Z] Platform:      darwin
-[debug] [2026-01-05T19:45:27.645Z] Node Version:  v20.19.4
-[debug] [2026-01-05T19:45:27.645Z] Time:          Mon Jan 05 2026 13:45:27 GMT-0600 (Central Standard Time)
-[debug] [2026-01-05T19:45:27.645Z] ----------------------------------------------------------------------
+[debug] [2026-01-09T19:52:56.372Z] ----------------------------------------------------------------------
+[debug] [2026-01-09T19:52:56.373Z] Command:       /Users/Frank/.nvm/versions/node/v20.19.4/bin/node /opt/homebrew/bin/firebase deploy --only firestore:indexes --project micro-saas-713e2
+[debug] [2026-01-09T19:52:56.374Z] CLI Version:   15.2.1
+[debug] [2026-01-09T19:52:56.374Z] Platform:      darwin
+[debug] [2026-01-09T19:52:56.374Z] Node Version:  v20.19.4
+[debug] [2026-01-09T19:52:56.374Z] Time:          Fri Jan 09 2026 13:52:56 GMT-0600 (Central Standard Time)
+[debug] [2026-01-09T19:52:56.374Z] ----------------------------------------------------------------------
 [debug] 
-[debug] [2026-01-05T19:45:27.680Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
-[debug] [2026-01-05T19:45:27.680Z] > authorizing via signed-in user (fvonhoven@gmail.com)
-[debug] [2026-01-05T19:45:27.681Z] > refreshing access token with scopes: []
-[debug] [2026-01-05T19:45:27.682Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
-[debug] [2026-01-05T19:45:27.682Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
-[debug] [2026-01-05T19:45:27.920Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 400
-[debug] [2026-01-05T19:45:27.920Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
-[debug] [2026-01-05T19:45:27.920Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
-[debug] [2026-01-05T19:45:28.082Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 401
-[debug] [2026-01-05T19:45:28.082Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
-[debug] [2026-01-05T19:45:28.083Z] HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
-[debug] [2026-01-05T19:45:28.173Z] FirebaseError: HTTP Error: 401, Request had invalid authentication credentials. Expected OAuth 2 access token, login cookie or other valid authentication credential. See https://developers.google.com/identity/sign-in/web/devconsole-project.
-    at responseToError (/opt/homebrew/lib/node_modules/firebase-tools/lib/responseToError.js:49:12)
-    at RetryOperation._fn (/opt/homebrew/lib/node_modules/firebase-tools/lib/apiv2.js:288:77)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+[debug] [2026-01-09T19:52:56.756Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-01-09T19:52:56.756Z] > authorizing via signed-in user (fvonhoven@gmail.com)
+[debug] [2026-01-09T19:52:56.756Z] [iam] checking project micro-saas-713e2 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-01-09T19:52:56.756Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:56.757Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:56.757Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/micro-saas-713e2:testIamPermissions [none]
+[debug] [2026-01-09T19:52:56.757Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/micro-saas-713e2:testIamPermissions x-goog-quota-user=projects/micro-saas-713e2
+[debug] [2026-01-09T19:52:56.757Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/micro-saas-713e2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-01-09T19:52:56.946Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/micro-saas-713e2:testIamPermissions 200
+[debug] [2026-01-09T19:52:56.946Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/micro-saas-713e2:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'micro-saas-713e2'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-01-09T19:52:56.948Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:56.948Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:56.948Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) [none]
+[debug] [2026-01-09T19:52:57.230Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) 200
+[debug] [2026-01-09T19:52:57.230Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) {"name":"projects/micro-saas-713e2/databases/(default)","uid":"287ba31b-0d3c-45ab-8880-d2c1a2e89fcf","createTime":"2025-12-30T16:26:36.487732Z","updateTime":"2025-12-30T16:26:36.487732Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-01-09T18:52:57.201508Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IK7Swvmd/5EDMOPO3Nml55ED"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-01-09T19:52:57.231Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.231Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.231Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/micro-saas-713e2:test [none]
+[debug] [2026-01-09T19:52:57.231Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/micro-saas-713e2:test [omitted]
+[debug] [2026-01-09T19:52:57.446Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/micro-saas-713e2:test 200
+[debug] [2026-01-09T19:52:57.446Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/micro-saas-713e2:test {}
+[info] ✔  cloud.firestore: rules file firestore.rules compiled successfully 
+[info] i  firestore: deploying indexes... 
+[debug] [2026-01-09T19:52:57.447Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.447Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.447Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-01-09T19:52:57.545Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-01-09T19:52:57.545Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/micro-saas-713e2/databases/(default)/collectionGroups/monitors/indexes/CICAgJim14AK","queryScope":"COLLECTION","fields":[{"fieldPath":"nextExpectedAt","order":"ASCENDING"},{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/micro-saas-713e2/databases/(default)/collectionGroups/monitors/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"userId","order":"ASCENDING"},{"fieldPath":"createdAt","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/micro-saas-713e2/databases/(default)/collectionGroups/monitors/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"status","order":"ASCENDING"},{"fieldPath":"nextExpectedAt","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/micro-saas-713e2/databases/(default)/collectionGroups/incidents/indexes/CICAgJiUsZIK","queryScope":"COLLECTION","fields":[{"fieldPath":"resolvedAt","order":"ASCENDING"},{"fieldPath":"startedAt","order":"DESCENDING"},{"fieldPath":"__name__","order":"DESCENDING"}],"state":"READY","density":"SPARSE_ALL"}]}
+[debug] [2026-01-09T19:52:57.546Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.546Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.546Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-01-09T19:52:57.645Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-01-09T19:52:57.645Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/micro-saas-713e2/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-01-09T19:52:57.647Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.647Z] Checked if tokens are valid: true, expires at: 1767991957681
+[debug] [2026-01-09T19:52:57.647Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) [none]
+[debug] [2026-01-09T19:52:57.757Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) 200
+[debug] [2026-01-09T19:52:57.757Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/micro-saas-713e2/databases/(default) {"name":"projects/micro-saas-713e2/databases/(default)","uid":"287ba31b-0d3c-45ab-8880-d2c1a2e89fcf","createTime":"2025-12-30T16:26:36.487732Z","updateTime":"2025-12-30T16:26:36.487732Z","locationId":"nam5","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-01-09T18:52:57.728141Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"s","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IPjj4vmd/5EDMOPO3Nml55ED"}
+[info] i  firestore: The following indexes are defined in your project but are not present in your firestore indexes file:
+	(monitors) -- (nextExpectedAt,ASCENDING) (status,ASCENDING)  -- Density:SPARSE_ALL 
+	(incidents) -- (resolvedAt,ASCENDING) (startedAt,DESCENDING)  -- Density:SPARSE_ALL  
+[debug] [2026-01-09T19:53:17.408Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (/opt/homebrew/lib/node_modules/firebase-tools/node_modules/@inquirer/core/dist/commonjs/lib/create-prompt.js:101:37)
+    at Interface.emit (node:events:524:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1125:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:264:20)
+    at ReadStream.emit (node:events:536:35)
+    at emitKeys (node:internal/readline/utils:371:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
 [error] 
-[error] Error: Failed to list Firebase projects. See firebase-debug.log for more info.
+[error] Error: An unexpected error has occurred.

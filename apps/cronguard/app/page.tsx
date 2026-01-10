@@ -83,6 +83,27 @@ export default function HomePage() {
             </p>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-32 border-t border-gray-200 pt-12 pb-8">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">© 2026 Nexus Development, LLC. All rights reserved.</p>
+            <div className="flex justify-center gap-6 text-sm">
+              <Link href="/terms" className="text-gray-600 hover:text-purple-600 transition-colors">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="text-gray-600 hover:text-purple-600 transition-colors">
+                Privacy Policy
+              </Link>
+              <Link href="/pricing" className="text-gray-600 hover:text-purple-600 transition-colors">
+                Pricing
+              </Link>
+              {/* <a href="mailto:support@cronnarc.com" className="text-gray-600 hover:text-purple-600 transition-colors">
+                Contact
+              </a> */}
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   )

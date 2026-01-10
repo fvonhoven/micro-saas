@@ -101,3 +101,11 @@ export async function updateSubscription({ subscriptionId, newPriceId }: { subsc
 
   return updatedSubscription
 }
+
+/**
+ * Cancel a user's subscription immediately
+ */
+export async function cancelSubscription({ subscriptionId }: { subscriptionId: string }) {
+  const canceledSubscription = await stripe.subscriptions.cancel(subscriptionId)
+  return canceledSubscription
+}

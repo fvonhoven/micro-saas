@@ -20,6 +20,10 @@ export default function ProfilePage() {
   const [selectedPlan, setSelectedPlan] = useState<string>("")
   const [selectedCycle, setSelectedCycle] = useState<"monthly" | "annual">("annual")
   const [changingPlan, setChangingPlan] = useState(false)
+  const [showDangerZone, setShowDangerZone] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -107,6 +111,39 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     await signOut(auth)
     router.push("/login")
+  }
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      alert("Please type DELETE to confirm")
+      return
+    }
+
+    if (!confirm("Are you absolutely sure? This action cannot be undone. All your monitors, incidents, and data will be permanently deleted.")) {
+      return
+    }
+
+    setDeleting(true)
+    try {
+      const response = await fetch("/api/user/delete", {
+        method: "DELETE",
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Sign out and redirect to home page
+        await signOut(auth)
+        router.push("/?deleted=true")
+      } else {
+        alert(data.error || "Failed to delete account. Please contact support.")
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error)
+      alert("Failed to delete account. Please try again or contact support.")
+    } finally {
+      setDeleting(false)
+    }
   }
 
   if (loading || !user) {
@@ -325,6 +362,96 @@ export default function ProfilePage() {
               )}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Danger Zone - Delete Account (Fixed to Bottom) */}
+      <div className="bg-gray-50 mt-12">
+        <div className="container mx-auto px-4 py-6 max-w-3xl">
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <button onClick={() => setShowDangerZone(!showDangerZone)} className="w-full flex items-center justify-between text-left group">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Delete Account</span>
+              </div>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${showDangerZone ? "rotate-180" : ""}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showDangerZone && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                {!showDeleteConfirm ? (
+                  <div>
+                    <p className="text-gray-700 text-sm mb-3">Once you delete your account, there is no going back. This will permanently delete:</p>
+                    <ul className="list-disc pl-5 text-gray-600 text-sm mb-4 space-y-1">
+                      <li>All your monitors and their configurations</li>
+                      <li>All incident history and analytics</li>
+                      <li>All alert channels</li>
+                      <li>All ping history</li>
+                      <li>Your account and profile data</li>
+                    </ul>
+                    {currentPlan && currentPlan.name !== "Free" && (
+                      <p className="text-gray-700 text-sm mb-4 font-medium">⚠️ Your active subscription will be canceled immediately.</p>
+                    )}
+                    <Button
+                      onClick={() => setShowDeleteConfirm(true)}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      Delete Account
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <p className="text-gray-900 font-semibold text-sm">Are you absolutely sure?</p>
+                    <p className="text-gray-600 text-sm">
+                      This action <strong>cannot be undone</strong>. This will permanently delete your account and all associated data.
+                    </p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Type <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">DELETE</span> to confirm:
+                      </label>
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={e => setDeleteConfirmText(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                        placeholder="Type DELETE"
+                        disabled={deleting}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={handleDeleteAccount}
+                        disabled={deleteConfirmText !== "DELETE" || deleting}
+                        size="sm"
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {deleting ? "Deleting..." : "Permanently Delete Account"}
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setShowDeleteConfirm(false)
+                          setDeleteConfirmText("")
+                        }}
+                        variant="outline"
+                        size="sm"
+                        disabled={deleting}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
