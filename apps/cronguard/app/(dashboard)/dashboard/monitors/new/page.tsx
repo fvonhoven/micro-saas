@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -111,7 +112,12 @@ export default function NewMonitorPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold">CronNarc</h1>
+          <Link
+            href="/dashboard"
+            className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
+          >
+            CronNarc
+          </Link>
         </div>
       </nav>
 

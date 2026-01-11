@@ -81,6 +81,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedMonitors, setSelectedMonitors] = useState<Set<string>>(new Set())
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [editForm, setEditForm] = useState({
     name: "",
     intervalMinutes: 1 as number | "custom",
@@ -393,7 +394,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">CronNarc</h1>
+          <Link
+            href="/dashboard"
+            className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
+          >
+            CronNarc
+          </Link>
           <div className="flex gap-4 items-center">
             {currentPlan && (
               <div className="text-sm">
@@ -406,7 +412,6 @@ export default function DashboardPage() {
                 )}
               </div>
             )}
-            <span className="text-sm text-gray-600">{user.email}</span>
             {currentPlan && currentPlan.monthlyPrice === 0 && (
               <Link href="/pricing">
                 <Button variant="outline" size="sm">
@@ -414,14 +419,33 @@ export default function DashboardPage() {
                 </Button>
               </Link>
             )}
-            <Link href="/profile">
-              <Button variant="outline" size="sm">
-                Profile
-              </Button>
-            </Link>
-            <Button onClick={handleLogout} variant="outline">
-              Logout
-            </Button>
+
+            {/* Profile Avatar Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                onBlur={() => setTimeout(() => setShowProfileMenu(false), 200)}
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-semibold">
+                  {user.email?.[0]?.toUpperCase() || "U"}
+                </div>
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+                  </div>
+                  <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    Profile Settings
+                  </Link>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>

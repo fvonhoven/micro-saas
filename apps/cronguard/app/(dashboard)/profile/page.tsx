@@ -5,7 +5,7 @@ import { useAuthContext } from "@repo/auth"
 import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { signOut } from "firebase/auth"
+import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth"
 import { auth, db } from "@repo/firebase/client"
 import { doc, getDoc } from "firebase/firestore"
 import { PLAN_METADATA } from "@repo/billing/client"
@@ -24,6 +24,14 @@ export default function ProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
   const [deleting, setDeleting] = useState(false)
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [showPasswordChange, setShowPasswordChange] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [passwordSuccess, setPasswordSuccess] = useState("")
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -146,6 +154,60 @@ export default function ProfilePage() {
     }
   }
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPasswordError("")
+    setPasswordSuccess("")
+
+    // Validation
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long")
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match")
+      return
+    }
+
+    if (!auth.currentUser || !user?.email) {
+      setPasswordError("User not authenticated")
+      return
+    }
+
+    setChangingPassword(true)
+
+    try {
+      // Re-authenticate user before changing password
+      const credential = EmailAuthProvider.credential(user.email, currentPassword)
+      await reauthenticateWithCredential(auth.currentUser, credential)
+
+      // Update password
+      await updatePassword(auth.currentUser, newPassword)
+
+      setPasswordSuccess("Password updated successfully!")
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setShowPasswordChange(false)
+
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => setPasswordSuccess(""), 3000)
+    } catch (err: any) {
+      if (err.code === "auth/wrong-password") {
+        setPasswordError("Current password is incorrect")
+      } else if (err.code === "auth/weak-password") {
+        setPasswordError("Password is too weak. Please choose a stronger password")
+      } else if (err.code === "auth/requires-recent-login") {
+        setPasswordError("Please sign out and sign in again before changing your password")
+      } else {
+        setPasswordError(err.message || "Failed to update password")
+      }
+    } finally {
+      setChangingPassword(false)
+    }
+  }
+
   if (loading || !user) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>
   }
@@ -160,16 +222,45 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">CronNarc</h1>
+          <Link
+            href="/dashboard"
+            className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
+          >
+            CronNarc
+          </Link>
           <div className="flex gap-4 items-center">
             <Link href="/dashboard">
               <Button variant="outline" size="sm">
                 Dashboard
               </Button>
             </Link>
-            <Button onClick={handleLogout} variant="outline">
-              Logout
-            </Button>
+
+            {/* Profile Avatar Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                onBlur={() => setTimeout(() => setShowProfileMenu(false), 200)}
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center text-white font-semibold">
+                  {user.email?.[0]?.toUpperCase() || "U"}
+                </div>
+              </button>
+
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
+                  </div>
+                  <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                    Profile Settings
+                  </Link>
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </nav>
@@ -186,6 +277,81 @@ export default function ProfilePage() {
               <p className="font-medium">{user.email}</p>
             </div>
           </div>
+        </div>
+
+        {/* Password Change */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="text-xl font-semibold mb-4">Password</h3>
+
+          {passwordSuccess && <div className="bg-green-50 text-green-600 p-3 rounded mb-4">{passwordSuccess}</div>}
+
+          {!showPasswordChange ? (
+            <div>
+              <p className="text-sm text-gray-600 mb-4">Change your password to keep your account secure.</p>
+              <Button onClick={() => setShowPasswordChange(true)} variant="outline">
+                Change Password
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              {passwordError && <div className="bg-red-50 text-red-600 p-3 rounded">{passwordError}</div>}
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  minLength={6}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  minLength={6}
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <Button type="submit" disabled={changingPassword}>
+                  {changingPassword ? "Updating..." : "Update Password"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowPasswordChange(false)
+                    setCurrentPassword("")
+                    setNewPassword("")
+                    setConfirmPassword("")
+                    setPasswordError("")
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Subscription Information */}
