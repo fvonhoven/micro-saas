@@ -9,6 +9,7 @@ import { signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredentia
 import { auth, db } from "@repo/firebase/client"
 import { doc, getDoc } from "firebase/firestore"
 import { PLAN_METADATA } from "@repo/billing/client"
+import { MonitorSelectionModal } from "../../../components/MonitorSelectionModal"
 
 export default function ProfilePage() {
   const { user, loading } = useAuthContext()
@@ -32,6 +33,9 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState("")
   const [changingPassword, setChangingPassword] = useState(false)
+  const [showMonitorSelection, setShowMonitorSelection] = useState(false)
+  const [downgradeInfo, setDowngradeInfo] = useState<any>(null)
+  const [checkingDowngrade, setCheckingDowngrade] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -87,8 +91,22 @@ export default function ProfilePage() {
   const handleChangePlan = async () => {
     if (!selectedPlan) return
 
-    setChangingPlan(true)
+    setCheckingDowngrade(true)
     try {
+      // First, check if this is a downgrade that requires monitor selection
+      const checkResponse = await fetch(`/api/billing/check-downgrade?planId=${selectedPlan}&billingCycle=${selectedCycle}`)
+      const checkData = await checkResponse.json()
+
+      if (checkData.requiresMonitorSelection) {
+        // Show monitor selection modal
+        setDowngradeInfo(checkData)
+        setShowMonitorSelection(true)
+        setCheckingDowngrade(false)
+        return
+      }
+
+      // Not a downgrade or no monitor selection needed - proceed with normal plan change
+      setChangingPlan(true)
       const response = await fetch("/api/billing/change-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,6 +129,42 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Error changing plan:", error)
       alert("Failed to change plan. Please try again.")
+    } finally {
+      setChangingPlan(false)
+      setCheckingDowngrade(false)
+    }
+  }
+
+  const handleDowngradeConfirm = async (selectedMonitorIds: string[]) => {
+    setChangingPlan(true)
+    try {
+      const response = await fetch("/api/billing/downgrade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: selectedPlan,
+          billingCycle: selectedCycle,
+          selectedMonitorIds,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        alert(
+          `Downgrade scheduled! ${data.archivedCount} monitors have been archived and will be deleted in 30 days. Your plan will change at the end of your current billing period.`,
+        )
+        setShowMonitorSelection(false)
+        setShowPlanChange(false)
+        setDowngradeInfo(null)
+        // Refresh user data
+        await fetchUserData()
+      } else {
+        alert(data.error || "Failed to schedule downgrade")
+      }
+    } catch (error) {
+      console.error("Error scheduling downgrade:", error)
+      alert("Failed to schedule downgrade. Please try again.")
     } finally {
       setChangingPlan(false)
     }
@@ -620,6 +674,22 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Monitor Selection Modal for Downgrades */}
+      {showMonitorSelection && downgradeInfo && (
+        <MonitorSelectionModal
+          isOpen={showMonitorSelection}
+          onClose={() => {
+            setShowMonitorSelection(false)
+            setDowngradeInfo(null)
+          }}
+          onConfirm={handleDowngradeConfirm}
+          monitors={downgradeInfo.monitors}
+          currentLimit={downgradeInfo.currentLimit}
+          newLimit={downgradeInfo.newLimit}
+          newPlanName={downgradeInfo.newPlanName}
+        />
+      )}
     </div>
   )
 }

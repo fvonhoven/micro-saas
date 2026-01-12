@@ -1,12 +1,17 @@
 import { adminAuth, adminDb } from "@repo/firebase/admin"
-import { updateSubscription, PLANS } from "@repo/billing"
+import { updateSubscription, PLANS, getUserPlan } from "@repo/billing"
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { z } from "zod"
+import { Resend } from "resend"
+import { upgradeConfirmationEmail } from "@/lib/email-templates"
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 const changePlanSchema = z.object({
   planId: z.enum(["starter", "pro", "team"]),
   billingCycle: z.enum(["monthly", "annual"]),
+  immediate: z.boolean().optional().default(true), // Apply immediately with proration or at end of period
 })
 
 async function getUserFromSession(req: NextRequest) {
@@ -43,6 +48,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No active subscription found" }, { status: 400 })
     }
 
+    // Get current plan for email
+    const currentPlan = getUserPlan("cronguard", {
+      stripePriceId: userData.stripePriceId,
+      stripeCurrentPeriodEnd: userData.stripeCurrentPeriodEnd,
+    })
+
     // Get the new price ID from the plan configuration
     const plan = PLANS.cronguard[data.planId]
     if (!plan || !("monthlyPriceId" in plan)) {
@@ -60,18 +71,61 @@ export async function POST(req: NextRequest) {
     const updatedSubscription = await updateSubscription({
       subscriptionId: userData.stripeSubscriptionId,
       newPriceId,
+      immediate: data.immediate,
     })
 
     // Update Firestore with the new price ID
-    await adminDb.collection("users").doc(user.uid).update({
-      stripePriceId: updatedSubscription.items.data[0]?.price.id,
-      stripeCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
-    })
+    await adminDb
+      .collection("users")
+      .doc(user.uid)
+      .update({
+        stripePriceId: updatedSubscription.items.data[0]?.price.id,
+        stripeCurrentPeriodEnd: new Date(updatedSubscription.current_period_end * 1000),
+      })
 
-    return NextResponse.json({ 
+    // Send upgrade confirmation email
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const userEmail = user.email || userData.email
+
+    if (userEmail) {
+      // Calculate proration amount from the latest invoice
+      let prorationAmount = 0
+      if (data.immediate && updatedSubscription.latest_invoice) {
+        const invoice =
+          typeof updatedSubscription.latest_invoice === "string"
+            ? await require("@repo/billing").stripe.invoices.retrieve(updatedSubscription.latest_invoice)
+            : updatedSubscription.latest_invoice
+
+        prorationAmount = invoice.amount_paid / 100 // Convert cents to dollars
+      }
+
+      const emailHtml = upgradeConfirmationEmail({
+        oldPlanName: currentPlan.name,
+        newPlanName: plan.name,
+        newPlanPrice: data.billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice,
+        billingCycle: data.billingCycle,
+        prorationAmount,
+        nextBillingDate: new Date(updatedSubscription.current_period_end * 1000),
+        immediate: data.immediate,
+        dashboardUrl: baseUrl,
+      })
+
+      await resend.emails.send({
+        from: "CronNarc <noreply@cronnarc.com>",
+        to: userEmail,
+        subject: `Plan Upgraded to ${plan.name}!`,
+        html: emailHtml,
+      })
+    }
+
+    return NextResponse.json({
       success: true,
-      message: "Plan updated successfully",
+      message: data.immediate
+        ? "Plan upgraded successfully! You've been charged the prorated amount."
+        : "Plan change scheduled for end of billing period.",
       newPlan: plan.name,
+      immediate: data.immediate,
+      nextBillingDate: new Date(updatedSubscription.current_period_end * 1000).toISOString(),
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -81,4 +135,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-

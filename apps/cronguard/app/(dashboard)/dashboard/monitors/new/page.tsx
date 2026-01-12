@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@repo/ui"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import { UpgradeModal } from "../../../../../components/UpgradeModal"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -27,6 +28,9 @@ const COMMON_TIMEZONES = [
 
 export default function NewMonitorPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const teamId = searchParams.get("teamId")
+
   const [name, setName] = useState("")
   const [intervalMinutes, setIntervalMinutes] = useState<number | "custom">(5) // 5 minute default (Free/Starter)
   const [customInterval, setCustomInterval] = useState("")
@@ -38,8 +42,29 @@ export default function NewMonitorPage() {
   const [error, setError] = useState("")
   const [currentPlan, setCurrentPlan] = useState<any>(null)
   const [loadingPlan, setLoadingPlan] = useState(true)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [limitInfo, setLimitInfo] = useState<any>(null)
+  const [teamName, setTeamName] = useState<string | null>(null)
 
-  // Fetch user's plan
+  // Fetch team info if teamId is provided
+  useEffect(() => {
+    if (teamId) {
+      const fetchTeam = async () => {
+        try {
+          const response = await fetch(`/api/teams/${teamId}`)
+          const data = await response.json()
+          if (data.team) {
+            setTeamName(data.team.name)
+          }
+        } catch (error) {
+          console.error("Error fetching team:", error)
+        }
+      }
+      fetchTeam()
+    }
+  }, [teamId])
+
+  // Fetch user's plan (or team's plan if creating for a team)
   useEffect(() => {
     const fetchPlan = async () => {
       try {
@@ -58,7 +83,7 @@ export default function NewMonitorPage() {
       }
     }
     fetchPlan()
-  }, [])
+  }, [teamId])
 
   // Auto-detect user's timezone
   useEffect(() => {
@@ -77,24 +102,41 @@ export default function NewMonitorPage() {
 
       const gracePeriod = gracePeriodMinutes === "custom" ? Number(customGracePeriod) * 60 : gracePeriodMinutes * 60
 
+      const requestBody: any = {
+        name,
+        expectedInterval,
+        gracePeriod,
+        alertEmail: alertEmail || undefined,
+        timezone: timezone || "UTC",
+      }
+
+      // Include teamId if creating for a team
+      if (teamId) {
+        requestBody.teamId = teamId
+      }
+
       const response = await fetch("/api/monitors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          expectedInterval,
-          gracePeriod,
-          alertEmail: alertEmail || undefined,
-          timezone: timezone || "UTC",
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
         if (response.status === 403 && data.message) {
-          // Plan limit reached
-          setError(data.message)
+          // Plan limit reached - show upgrade modal
+          setLimitInfo({
+            limit: data.limit,
+            current: data.current,
+          })
+          setShowUpgradeModal(true)
+
+          // Track analytics event
+          if (typeof window !== "undefined" && (window as any).clarity) {
+            ;(window as any).clarity("event", "monitors_over_limit")
+          }
+
           return
         }
         throw new Error(data.error || "Failed to create monitor")
@@ -122,7 +164,24 @@ export default function NewMonitorPage() {
       </nav>
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <h2 className="text-2xl font-bold mb-6">Create New Monitor</h2>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Create New Monitor</h2>
+          {teamName && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <span>
+                Creating for team: <span className="font-medium text-gray-900">{teamName}</span>
+              </span>
+            </div>
+          )}
+        </div>
 
         {error && (
           <div className="bg-red-50 text-red-600 p-3 rounded mb-4">
@@ -252,6 +311,27 @@ export default function NewMonitorPage() {
           </div>
         </form>
       </div>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && currentPlan && limitInfo && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          currentPlan={currentPlan.name}
+          currentLimit={limitInfo.limit}
+          currentUsage={limitInfo.current}
+          suggestedTier={
+            currentPlan.name === "Free"
+              ? { name: "Starter", monitors: 5, price: 15 }
+              : currentPlan.name === "Starter"
+                ? { name: "Pro", monitors: 25, price: 39 }
+                : currentPlan.name === "Pro"
+                  ? { name: "Team", monitors: 100, price: 99 }
+                  : undefined
+          }
+          reason="limit_reached"
+        />
+      )}
     </div>
   )
 }

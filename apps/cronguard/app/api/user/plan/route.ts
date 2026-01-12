@@ -21,7 +21,7 @@ async function getUserFromSession(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromSession(req)
-  
+
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
@@ -35,10 +35,17 @@ export async function GET(req: NextRequest) {
       stripeCurrentPeriodEnd: userData?.stripeCurrentPeriodEnd,
     })
 
-    return NextResponse.json({ plan })
+    // Get Firebase Auth user to check email verification
+    const authUser = await adminAuth.getUser(user.uid)
+
+    return NextResponse.json({
+      plan,
+      paymentStatus: userData?.paymentStatus || "active",
+      gracePeriodEndsAt: userData?.gracePeriodEndsAt?.toDate?.() || null,
+      emailVerified: authUser.emailVerified,
+    })
   } catch (error) {
     console.error("Error fetching user plan:", error)
     return NextResponse.json({ error: "Failed to fetch plan" }, { status: 500 })
   }
 }
-

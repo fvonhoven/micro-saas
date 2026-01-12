@@ -83,8 +83,17 @@ export function hasActiveSubscription(user: UserSubscription): boolean {
 
 /**
  * Update a user's subscription to a new plan
+ * @param immediate - If true, apply changes immediately with proration. If false, apply at end of period.
  */
-export async function updateSubscription({ subscriptionId, newPriceId }: { subscriptionId: string; newPriceId: string }) {
+export async function updateSubscription({
+  subscriptionId,
+  newPriceId,
+  immediate = true,
+}: {
+  subscriptionId: string
+  newPriceId: string
+  immediate?: boolean
+}) {
   // Retrieve the current subscription
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
@@ -96,10 +105,50 @@ export async function updateSubscription({ subscriptionId, newPriceId }: { subsc
         price: newPriceId,
       },
     ],
-    proration_behavior: "always_invoice", // Charge/credit immediately for the difference
+    proration_behavior: immediate ? "always_invoice" : "none", // Charge/credit immediately or at period end
+    billing_cycle_anchor: immediate ? "now" : "unchanged", // Reset billing cycle or keep current
   })
 
   return updatedSubscription
+}
+
+/**
+ * Preview the proration amount for a subscription change
+ * Returns the amount that will be charged (positive) or credited (negative) in cents
+ */
+export async function previewProration({ subscriptionId, newPriceId }: { subscriptionId: string; newPriceId: string }) {
+  // Retrieve the current subscription
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+
+  // Create an upcoming invoice preview with the new price
+  const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+    customer: subscription.customer as string,
+    subscription: subscriptionId,
+    subscription_items: [
+      {
+        id: subscription.items.data[0].id,
+        price: newPriceId,
+      },
+    ],
+    subscription_proration_behavior: "always_invoice",
+  })
+
+  // Calculate the proration amount
+  // This includes the credit for unused time on the old plan and the charge for the new plan
+  const prorationAmount = upcomingInvoice.amount_due
+
+  return {
+    amount: prorationAmount, // Amount in cents
+    amountDue: prorationAmount / 100, // Amount in dollars
+    currency: upcomingInvoice.currency,
+    periodStart: new Date(upcomingInvoice.period_start * 1000),
+    periodEnd: new Date(upcomingInvoice.period_end * 1000),
+    lines: upcomingInvoice.lines.data.map(line => ({
+      description: line.description,
+      amount: line.amount,
+      proration: line.proration,
+    })),
+  }
 }
 
 /**

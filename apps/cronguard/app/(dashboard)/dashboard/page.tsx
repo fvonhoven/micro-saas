@@ -7,6 +7,11 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "firebase/auth"
 import { auth } from "@repo/firebase/client"
+import { UsageWarningBanner } from "../../../components/UsageWarningBanner"
+import { UpgradeModal } from "../../../components/UpgradeModal"
+import { TeamSelector } from "../../../components/TeamSelector"
+import { PaymentWarningBanner } from "../../../components/PaymentWarningBanner"
+import { EmailVerificationBanner } from "../../../components/EmailVerificationBanner"
 
 const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 30, 60]
 
@@ -82,6 +87,16 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedMonitors, setSelectedMonitors] = useState<Set<string>>(new Set())
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const [monitorUsage, setMonitorUsage] = useState<any>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [currentWorkspace, setCurrentWorkspace] = useState<{
+    type: "personal" | "team"
+    teamId?: string
+    teamName?: string
+  }>({ type: "personal" })
+  const [paymentStatus, setPaymentStatus] = useState<"active" | "past_due" | "canceled" | null>(null)
+  const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState<Date | null>(null)
+  const [emailVerified, setEmailVerified] = useState(true) // Default to true to avoid flash
   const [editForm, setEditForm] = useState({
     name: "",
     intervalMinutes: 1 as number | "custom",
@@ -102,8 +117,9 @@ export default function DashboardPage() {
     if (user) {
       fetchMonitors()
       fetchUserPlan()
+      fetchMonitorUsage()
     }
-  }, [user])
+  }, [user, currentWorkspace])
 
   // Refresh plan data when returning from Stripe checkout
   useEffect(() => {
@@ -129,6 +145,17 @@ export default function DashboardPage() {
       if (data.plan) {
         setCurrentPlan(data.plan)
       }
+
+      // Set payment status and grace period
+      if (data.paymentStatus) {
+        setPaymentStatus(data.paymentStatus)
+      }
+      if (data.gracePeriodEndsAt) {
+        setGracePeriodEndsAt(new Date(data.gracePeriodEndsAt))
+      }
+
+      // Set email verification status
+      setEmailVerified(data.emailVerified ?? true)
     } catch (error) {
       console.error("Error fetching user plan:", error)
     }
@@ -136,13 +163,35 @@ export default function DashboardPage() {
 
   const fetchMonitors = async () => {
     try {
-      const response = await fetch("/api/monitors")
+      // Add teamId query param if in team workspace
+      const url = currentWorkspace.type === "team" && currentWorkspace.teamId ? `/api/monitors?teamId=${currentWorkspace.teamId}` : "/api/monitors"
+
+      const response = await fetch(url)
       const data = await response.json()
       setMonitors(data.monitors || [])
+      // Refresh usage after fetching monitors
+      fetchMonitorUsage()
     } catch (error) {
       console.error("Failed to fetch monitors:", error)
     } finally {
       setLoadingMonitors(false)
+    }
+  }
+
+  const fetchMonitorUsage = async () => {
+    try {
+      const response = await fetch("/api/monitors/usage")
+      const data = await response.json()
+      setMonitorUsage(data)
+
+      // Track analytics event if at or near limit
+      if (data.warnings?.atLimit && typeof window !== "undefined" && (window as any).clarity) {
+        ;(window as any).clarity("event", "monitors_at_limit")
+      } else if (data.warnings?.nearLimit && typeof window !== "undefined" && (window as any).clarity) {
+        ;(window as any).clarity("event", "monitors_near_limit")
+      }
+    } catch (error) {
+      console.error("Failed to fetch monitor usage:", error)
     }
   }
 
@@ -156,6 +205,11 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Logout error:", error)
     }
+  }
+
+  const handleWorkspaceChange = (workspace: { type: "personal" | "team"; teamId?: string; teamName?: string }) => {
+    setCurrentWorkspace(workspace)
+    setLoadingMonitors(true)
   }
 
   const handleDelete = async (id: string) => {
@@ -394,12 +448,15 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link
-            href="/dashboard"
-            className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
-          >
-            CronNarc
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard"
+              className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all"
+            >
+              CronNarc
+            </Link>
+            <TeamSelector onWorkspaceChange={handleWorkspaceChange} />
+          </div>
           <div className="flex gap-4 items-center">
             {currentPlan && (
               <div className="text-sm">
@@ -454,7 +511,13 @@ export default function DashboardPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold">Your Monitors</h2>
-            <Link href="/dashboard/monitors/new">
+            <Link
+              href={
+                currentWorkspace.type === "team" && currentWorkspace.teamId
+                  ? `/dashboard/monitors/new?teamId=${currentWorkspace.teamId}`
+                  : "/dashboard/monitors/new"
+              }
+            >
               <button className="p-1 rounded-full hover:bg-gray-100 transition-colors" title="Create new monitor">
                 <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" strokeWidth="2" />
@@ -469,6 +532,23 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* Email Verification Banner */}
+        <EmailVerificationBanner emailVerified={emailVerified} />
+
+        {/* Payment Warning Banner */}
+        <PaymentWarningBanner paymentStatus={paymentStatus} gracePeriodEndsAt={gracePeriodEndsAt} />
+
+        {/* Usage Warning Banner */}
+        {monitorUsage && monitorUsage.usage && (
+          <UsageWarningBanner
+            usage={monitorUsage.usage.active}
+            limit={monitorUsage.usage.limit}
+            percentage={monitorUsage.usage.percentage}
+            planName={monitorUsage.plan.name}
+            suggestedTier={monitorUsage.suggestedTier}
+          />
+        )}
 
         {/* Search and Filters */}
         {monitors.length > 0 && (
@@ -980,6 +1060,19 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && monitorUsage && (
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          currentPlan={monitorUsage.plan.name}
+          currentLimit={monitorUsage.usage.limit}
+          currentUsage={monitorUsage.usage.active}
+          suggestedTier={monitorUsage.suggestedTier}
+          reason={monitorUsage.warnings.atLimit ? "limit_reached" : "near_limit"}
+        />
       )}
     </div>
   )

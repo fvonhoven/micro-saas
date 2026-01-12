@@ -46,10 +46,36 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const body = await req.json()
     const data = updateMonitorSchema.parse(body)
 
-    // Verify ownership
+    // Verify ownership or team membership
     const monitorDoc = await adminDb.collection("monitors").doc(id).get()
-    if (!monitorDoc.exists || monitorDoc.data()?.userId !== user.uid) {
+    if (!monitorDoc.exists) {
       return NextResponse.json({ error: "Monitor not found" }, { status: 404 })
+    }
+
+    const monitorData = monitorDoc.data()
+    const isOwner = monitorData?.userId === user.uid
+    let canEdit = isOwner
+
+    // If it's a team monitor, check team membership and permissions
+    if (monitorData?.teamId) {
+      const membershipSnapshot = await adminDb
+        .collection("team_members")
+        .where("teamId", "==", monitorData.teamId)
+        .where("userId", "==", user.uid)
+        .limit(1)
+        .get()
+
+      if (!membershipSnapshot.empty) {
+        const role = membershipSnapshot.docs[0].data().role
+        // Viewers cannot edit monitors
+        canEdit = role !== "viewer"
+      } else {
+        canEdit = false
+      }
+    }
+
+    if (!canEdit) {
+      return NextResponse.json({ error: "You don't have permission to edit this monitor" }, { status: 403 })
     }
 
     const monitor = monitorDoc.data()
@@ -140,10 +166,36 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   try {
     const { id } = params
 
-    // Verify ownership
+    // Verify ownership or team admin/owner permissions
     const monitorDoc = await adminDb.collection("monitors").doc(id).get()
-    if (!monitorDoc.exists || monitorDoc.data()?.userId !== user.uid) {
+    if (!monitorDoc.exists) {
       return NextResponse.json({ error: "Monitor not found" }, { status: 404 })
+    }
+
+    const monitorData = monitorDoc.data()
+    const isOwner = monitorData?.userId === user.uid
+    let canDelete = isOwner
+
+    // If it's a team monitor, check team membership and permissions
+    if (monitorData?.teamId) {
+      const membershipSnapshot = await adminDb
+        .collection("team_members")
+        .where("teamId", "==", monitorData.teamId)
+        .where("userId", "==", user.uid)
+        .limit(1)
+        .get()
+
+      if (!membershipSnapshot.empty) {
+        const role = membershipSnapshot.docs[0].data().role
+        // Only admins and owners can delete team monitors
+        canDelete = role === "admin" || role === "owner"
+      } else {
+        canDelete = false
+      }
+    }
+
+    if (!canDelete) {
+      return NextResponse.json({ error: "You don't have permission to delete this monitor" }, { status: 403 })
     }
 
     // Delete monitor

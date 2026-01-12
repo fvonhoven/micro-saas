@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { createUserWithEmailAndPassword } from "firebase/auth"
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth"
 import { auth, db } from "@repo/firebase/client"
 import { doc, setDoc } from "firebase/firestore"
 import { Button } from "@repo/ui"
@@ -14,6 +14,7 @@ export default function SignupPage() {
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [verificationSent, setVerificationSent] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,9 +30,16 @@ export default function SignupPage() {
         email,
         name,
         createdAt: new Date(),
+        emailVerified: false,
         stripeCustomerId: null,
         stripePriceId: null,
         stripeCurrentPeriodEnd: null,
+      })
+
+      // Send email verification
+      await sendEmailVerification(userCredential.user, {
+        url: `${window.location.origin}/dashboard`,
+        handleCodeInApp: false,
       })
 
       // Get ID token and create session cookie
@@ -42,12 +50,37 @@ export default function SignupPage() {
         body: JSON.stringify({ idToken }),
       })
 
-      router.push("/dashboard")
+      setVerificationSent(true)
     } catch (err: any) {
       setError(err.message || "Failed to create account")
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show success message after verification email is sent
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+              <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-4">Check your email!</h1>
+            <p className="text-gray-600 mb-6">
+              We've sent a verification link to <strong>{email}</strong>. Please click the link in the email to verify your account.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">After verifying your email, you can access your dashboard and start creating monitors.</p>
+            <Button onClick={() => router.push("/dashboard")} className="w-full">
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

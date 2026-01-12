@@ -48,7 +48,8 @@ export async function POST(req: NextRequest) {
     for (const file of files) {
       const [metadata] = await file.getMetadata()
       if (metadata.name?.includes(userId)) {
-        totalBytes += parseInt(metadata.size || "0")
+        const size = typeof metadata.size === "string" ? metadata.size : String(metadata.size || 0)
+        totalBytes += parseInt(size)
       }
     }
 

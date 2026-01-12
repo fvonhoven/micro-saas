@@ -467,3 +467,359 @@ export function monitorResumedEmail({ monitorName, monitorUrl, resumedBy, dashbo
     content: content.replace("{{dashboardUrl}}", dashboardUrl),
   })
 }
+
+/**
+ * Team Invite Email Template
+ */
+interface TeamInviteEmailProps {
+  teamName: string
+  inviterName: string
+  inviterEmail: string
+  role: string
+  inviteUrl: string
+  expiresAt: Date
+  dashboardUrl: string
+}
+
+export function teamInviteEmail({ teamName, inviterName, inviterEmail, role, inviteUrl, expiresAt, dashboardUrl }: TeamInviteEmailProps): string {
+  const expiresAtFormatted = expiresAt.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  const roleDescriptions: Record<string, string> = {
+    viewer: "View monitors and receive alerts (read-only access)",
+    member: "Create and manage monitors",
+    admin: "Full team management including inviting members",
+  }
+
+  const roleDescription = roleDescriptions[role] || "Team member"
+
+  const content = `
+    <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 6px; margin-bottom: 24px;">
+      <h2 style="margin: 0 0 8px 0; color: #1e40af; font-size: 20px;">👥 You've Been Invited!</h2>
+      <p style="margin: 0; color: #1e3a8a; font-size: 16px; font-weight: 500;">Join ${teamName} on CronNarc</p>
+    </div>
+
+    <p style="font-size: 16px; color: #374151; line-height: 1.6; margin-bottom: 24px;">
+      <strong>${inviterName}</strong> (${inviterEmail}) has invited you to join their team on CronNarc.
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #f9fafb; border-radius: 6px;">
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Team</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">${teamName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Your Role</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px; text-transform: capitalize;">${role}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Invited By</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">${inviterName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px;">
+          <strong style="color: #6b7280; font-size: 14px;">Expires</strong>
+        </td>
+        <td style="padding: 12px 16px; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">${expiresAtFormatted}</span>
+        </td>
+      </tr>
+    </table>
+
+    <div style="background-color: #f0f9ff; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 14px; color: #0c4a6e; line-height: 1.6;">
+        <strong>As a ${role}:</strong> ${roleDescription}
+      </p>
+    </div>
+
+    <table style="width: 100%; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 0; text-align: center;">
+          <a href="${inviteUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+            Accept Invitation
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="font-size: 14px; color: #6b7280; text-align: center; margin-bottom: 24px;">
+      Or copy and paste this link into your browser:<br>
+      <a href="${inviteUrl}" style="color: #667eea; text-decoration: none; word-break: break-all;">${inviteUrl}</a>
+    </p>
+
+    <div style="background-color: #fef3c7; padding: 16px; border-radius: 6px; margin-top: 32px;">
+      <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+        <strong>⏰ This invitation expires on ${expiresAtFormatted}.</strong> Make sure to accept it before then!
+      </p>
+    </div>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 32px; background-color: #f9fafb; padding: 16px; border-radius: 6px;">
+      <strong>💡 What is CronNarc?</strong><br>
+      CronNarc is a cron job monitoring service that helps teams ensure their scheduled tasks are running reliably.
+      Get instant alerts when jobs fail to check in, and collaborate with your team to maintain uptime.
+    </p>
+  `
+
+  return emailLayout({
+    title: `You've been invited to join ${teamName} on CronNarc`,
+    previewText: `${inviterName} has invited you to join ${teamName} on CronNarc as a ${role}.`,
+    content: content.replace(/{{dashboardUrl}}/g, dashboardUrl),
+  })
+}
+
+/**
+ * Upgrade confirmation email
+ */
+interface UpgradeConfirmationEmailProps {
+  oldPlanName: string
+  newPlanName: string
+  newPlanPrice: number
+  billingCycle: "monthly" | "annual"
+  prorationAmount: number
+  nextBillingDate: Date
+  immediate: boolean
+  dashboardUrl: string
+}
+
+export function upgradeConfirmationEmail({
+  oldPlanName,
+  newPlanName,
+  newPlanPrice,
+  billingCycle,
+  prorationAmount,
+  nextBillingDate,
+  immediate,
+  dashboardUrl,
+}: UpgradeConfirmationEmailProps): string {
+  const nextBillingFormatted = nextBillingDate.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  const content = `
+    <div style="background-color: #d1fae5; border-left: 4px solid #10b981; padding: 20px; border-radius: 6px; margin-bottom: 24px;">
+      <h2 style="margin: 0 0 8px 0; color: #065f46; font-size: 20px;">🎉 Plan Upgrade Successful!</h2>
+      <p style="margin: 0; color: #047857; font-size: 16px; font-weight: 500;">
+        ${immediate ? "Your plan has been upgraded immediately" : "Your plan upgrade is scheduled"}
+      </p>
+    </div>
+
+    <p style="font-size: 16px; color: #374151; line-height: 1.6; margin-bottom: 24px;">
+      ${
+        immediate
+          ? `Congratulations! Your CronNarc plan has been upgraded from <strong>${oldPlanName}</strong> to <strong>${newPlanName}</strong>.`
+          : `Your CronNarc plan will be upgraded from <strong>${oldPlanName}</strong> to <strong>${newPlanName}</strong> at the end of your current billing period.`
+      }
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px; background-color: #f9fafb; border-radius: 6px;">
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Previous Plan</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">${oldPlanName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">New Plan</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #10b981; font-size: 14px; font-weight: 600;">${newPlanName}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Billing Cycle</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px; text-transform: capitalize;">${billingCycle}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">New Price</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">$${newPlanPrice}/${billingCycle === "monthly" ? "mo" : "yr"}</span>
+        </td>
+      </tr>
+      ${
+        immediate && prorationAmount > 0
+          ? `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <strong style="color: #6b7280; font-size: 14px;">Prorated Charge</strong>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <span style="color: #10b981; font-size: 14px; font-weight: 600;">$${prorationAmount.toFixed(2)}</span>
+        </td>
+      </tr>
+      `
+          : ""
+      }
+      <tr>
+        <td style="padding: 12px 16px;">
+          <strong style="color: #6b7280; font-size: 14px;">Next Billing Date</strong>
+        </td>
+        <td style="padding: 12px 16px; text-align: right;">
+          <span style="color: #111827; font-size: 14px;">${nextBillingFormatted}</span>
+        </td>
+      </tr>
+    </table>
+
+    ${
+      immediate && prorationAmount > 0
+        ? `
+    <div style="background-color: #eff6ff; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+      <p style="margin: 0; font-size: 14px; color: #1e40af; line-height: 1.6;">
+        <strong>💳 Prorated Charge:</strong> You've been charged $${prorationAmount.toFixed(2)} for the upgrade. This amount represents the difference between your old and new plan for the remainder of your current billing period.
+      </p>
+    </div>
+    `
+        : ""
+    }
+
+    <div style="background-color: #f0f9ff; padding: 16px; border-radius: 6px; margin-bottom: 24px;">
+      <p style="margin: 0 0 12px 0; font-size: 14px; color: #0c4a6e; font-weight: 600;">
+        ✨ What's New with ${newPlanName}:
+      </p>
+      <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #0c4a6e; line-height: 1.8;">
+        ${
+          newPlanName === "Starter"
+            ? `
+        <li>Up to 5 monitors</li>
+        <li>5-minute check intervals</li>
+        <li>Email alerts</li>
+        `
+            : newPlanName === "Pro"
+              ? `
+        <li>Up to 25 monitors</li>
+        <li>1-minute check intervals</li>
+        <li>Email, Slack & webhook alerts</li>
+        <li>Advanced analytics</li>
+        `
+              : newPlanName === "Team"
+                ? `
+        <li>Up to 100 monitors</li>
+        <li>1-minute check intervals</li>
+        <li>Email, Slack & webhook alerts</li>
+        <li>Team collaboration</li>
+        <li>Advanced analytics</li>
+        <li>Priority support</li>
+        `
+                : ""
+        }
+      </ul>
+    </div>
+
+    <table style="width: 100%; margin-bottom: 24px;">
+      <tr>
+        <td style="padding: 0; text-align: center;">
+          <a href="${dashboardUrl}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+            Go to Dashboard
+          </a>
+        </td>
+      </tr>
+    </table>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 32px; background-color: #f9fafb; padding: 16px; border-radius: 6px;">
+      <strong>Questions?</strong> If you have any questions about your upgrade or billing, please don't hesitate to contact our support team.
+    </p>
+  `
+
+  return emailLayout({
+    title: `Plan Upgraded to ${newPlanName}!`,
+    previewText: `Your CronNarc plan has been ${immediate ? "upgraded" : "scheduled for upgrade"} to ${newPlanName}.`,
+    content: content.replace(/{{dashboardUrl}}/g, dashboardUrl),
+  })
+}
+
+/**
+ * Downgrade confirmation email
+ */
+export function downgradeConfirmationEmail({
+  newPlanName,
+  archivedCount,
+  appliesAt,
+  dashboardUrl,
+}: {
+  newPlanName: string
+  archivedCount: number
+  appliesAt: Date
+  dashboardUrl: string
+}): string {
+  const appliesAtFormatted = appliesAt.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  })
+
+  const content = `
+    <h1 style="font-size: 24px; font-weight: 700; color: #1f2937; margin: 0 0 16px 0;">
+      Plan Downgrade Scheduled
+    </h1>
+
+    <p style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 16px 0;">
+      Hi there,
+    </p>
+
+    <p style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 16px 0;">
+      Your plan downgrade to <strong>${newPlanName}</strong> has been scheduled and will take effect on
+      <strong>${appliesAtFormatted}</strong> at the end of your current billing period.
+    </p>
+
+    <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+      <p style="font-size: 14px; line-height: 20px; color: #92400e; margin: 0;">
+        <strong>⚠️ Important:</strong> ${archivedCount} monitor${archivedCount !== 1 ? "s have" : " has"} been archived and will be
+        automatically deleted in 30 days. You can restore archived monitors by upgrading your plan before the deletion date.
+      </p>
+    </div>
+
+    <p style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 16px 0;">
+      <strong>What happens next:</strong>
+    </p>
+
+    <ul style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 24px 0; padding-left: 20px;">
+      <li style="margin-bottom: 8px;">Your current plan remains active until ${appliesAtFormatted}</li>
+      <li style="margin-bottom: 8px;">Archived monitors are paused and will not send alerts</li>
+      <li style="margin-bottom: 8px;">After 30 days, archived monitors will be permanently deleted</li>
+      <li style="margin-bottom: 8px;">You can upgrade anytime to restore archived monitors</li>
+    </ul>
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="{{dashboardUrl}}"
+         style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        View Dashboard
+      </a>
+    </div>
+
+    <p style="font-size: 14px; line-height: 20px; color: #6b7280; margin: 24px 0 0 0;">
+      If you have any questions or need to make changes, please visit your
+      <a href="{{dashboardUrl}}/profile" style="color: #667eea; text-decoration: none;">account settings</a>.
+    </p>
+  `
+
+  return emailLayout({
+    title: `Plan Downgrade Scheduled - ${newPlanName}`,
+    previewText: `Your plan downgrade to ${newPlanName} has been scheduled for ${appliesAtFormatted}.`,
+    content: content.replace(/{{dashboardUrl}}/g, dashboardUrl),
+  })
+}

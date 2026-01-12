@@ -1,4 +1,161 @@
-# Testing CronGuard
+# Testing CronNarc
+
+## 🚀 Quick Start - Run All Tests
+
+### Unit Tests (Fast, Isolated)
+
+Run unit tests with Vitest:
+
+```bash
+cd apps/cronguard
+pnpm test                # Run all unit tests
+pnpm test:watch          # Watch mode for development
+pnpm test:coverage       # Generate coverage report
+pnpm test:ui             # Open Vitest UI
+```
+
+**What's tested:**
+
+- ✅ Rate limiter logic (14 tests)
+- ✅ Email template structure (1 test)
+- ✅ Billing helper functions (10 tests)
+
+### Integration Tests (Full Stack)
+
+Run integration tests:
+
+```bash
+node apps/cronguard/scripts/run-all-tests.js
+```
+
+**What's tested:**
+
+- ✅ Rate limiting on live API endpoints
+- ✅ Email verification flow
+- ✅ Team collaboration features
+- ✅ Billing and monitor limits
+
+---
+
+## 📊 Test Types
+
+### Unit Tests ⚡ (Recommended for Development)
+
+**Fast, isolated tests** that run in milliseconds:
+
+- Test individual functions and classes
+- No database or API calls
+- Run on every code change
+- Great for TDD (Test-Driven Development)
+
+**Run with:**
+
+```bash
+pnpm test:watch
+```
+
+### Integration Tests 🔗 (Pre-Deployment)
+
+**Full-stack tests** that test real API endpoints and database:
+
+- Test complete user flows
+- Require running server
+- Slower but more comprehensive
+- Run before deployment
+
+**Run with:**
+
+```bash
+pnpm test:integration
+```
+
+---
+
+## 📋 Individual Test Suites
+
+### 1. Rate Limiting Tests
+
+Tests that rate limiting is working on auth and API endpoints.
+
+```bash
+node apps/cronguard/scripts/test-rate-limiting.js
+```
+
+**What it tests:**
+
+- Auth endpoint rate limiting (10 attempts per 15 minutes)
+- Monitor creation rate limiting (5 per hour)
+- General API rate limiting (100 per 15 minutes)
+
+---
+
+### 2. Email Verification Tests
+
+Tests that email verification is required for new users.
+
+```bash
+node apps/cronguard/scripts/test-email-verification.js
+```
+
+**What it tests:**
+
+- New users are created with `emailVerified: false`
+- Monitor creation is blocked until email is verified
+- Email verification banner shows on dashboard
+- Users can resend verification email
+
+---
+
+### 3. Team Collaboration Tests
+
+Tests team creation, invites, and permissions.
+
+```bash
+node apps/cronguard/scripts/test-teams.js
+```
+
+**What it tests:**
+
+- Team creation with owner
+- Team member management
+- Team invite creation and expiration
+- Role-based permissions
+
+---
+
+### 4. Billing & Monitor Limits Tests
+
+Tests monitor limits, upgrades, downgrades, and payment handling.
+
+```bash
+node apps/cronguard/scripts/test-billing.js
+```
+
+**What it tests:**
+
+- Monitor limit enforcement
+- Upgrade prompts when limit is reached
+- Downgrade flow with monitor archiving
+- Payment failure grace period
+- Payment warning banners
+
+---
+
+### 5. Email Template Tests
+
+Test email sending with Resend.
+
+```bash
+node apps/cronguard/scripts/test-resend-email.js your-email@example.com
+```
+
+**What it tests:**
+
+- Resend API configuration
+- Email delivery
+- Email template rendering
+
+---
 
 ## Quick Test (Manual)
 
@@ -113,6 +270,7 @@ fi
 ```
 
 **Crontab:**
+
 ```bash
 0 2 * * * /scripts/backup-db.sh  # Every day at 2 AM
 ```
@@ -121,24 +279,25 @@ fi
 
 ```javascript
 // sync-data.js
-const fetch = require('node-fetch')
+const fetch = require("node-fetch")
 
 async function syncData() {
   // Fetch data from external API
-  const response = await fetch('https://api.example.com/data')
+  const response = await fetch("https://api.example.com/data")
   const data = await response.json()
-  
+
   // Save to database
   await saveToDatabase(data)
-  
+
   // Ping CronGuard on success
-  await fetch('https://cronguard.com/api/ping/sync-job-123456')
+  await fetch("https://cronguard.com/api/ping/sync-job-123456")
 }
 
 syncData().catch(console.error)
 ```
 
 **Crontab:**
+
 ```bash
 */15 * * * * node /scripts/sync-data.js  # Every 15 minutes
 ```
@@ -157,6 +316,7 @@ curl -s https://cronguard.com/api/ping/cleanup-job-123456
 ```
 
 **Crontab:**
+
 ```bash
 0 * * * * /scripts/cleanup.sh  # Every hour
 ```
@@ -178,6 +338,7 @@ netlify functions:invoke check-monitors
 ```
 
 Or deploy to Netlify and check the function logs:
+
 1. Deploy to Netlify
 2. Go to Netlify Dashboard → Functions
 3. Click "check-monitors"
@@ -215,18 +376,192 @@ Or deploy to Netlify and check the function logs:
 ## Troubleshooting
 
 ### Monitor stays PENDING
+
 - Make sure you're pinging the correct URL
 - Check the monitor slug matches
 - Verify the ping endpoint is working: `curl -v http://localhost:3000/api/ping/YOUR_SLUG`
 
 ### No emails received
+
 - Check `RESEND_API_KEY` is set in environment variables
 - Verify the alert email is correct in the monitor settings
 - Check Netlify function logs for email errors
 
 ### Cron job not running
+
 - Check cron is running: `ps aux | grep cron`
 - View cron logs: `tail -f /var/log/syslog | grep CRON` (Linux) or `log show --predicate 'process == "cron"' --last 1h` (macOS)
 - Make sure script has execute permissions: `chmod +x script.sh`
 - Use absolute paths in crontab
 
+---
+
+## 🆕 Testing New Features (Priorities 1-7)
+
+### Priority 1: Monitor Limit Enforcement & Upgrade Flow
+
+**Manual Test:**
+
+1. Create a free account (2 monitor limit)
+2. Create 2 monitors
+3. Try to create a 3rd monitor
+4. Should see upgrade modal prompting to upgrade
+5. Usage warning banner should appear at 80%+ capacity (2/2 monitors)
+
+**API Test:**
+
+```bash
+# Check monitor usage
+curl http://localhost:3000/api/monitors/usage \
+  -H "Cookie: session=YOUR_SESSION_COOKIE"
+
+# Expected response:
+# { "used": 2, "limit": 2, "percentage": 100 }
+```
+
+---
+
+### Priority 2: Downgrade Handling
+
+**Manual Test:**
+
+1. Create a Pro account with 10 monitors
+2. Downgrade to Starter plan (5 monitors)
+3. Should see monitor selection modal
+4. Select 5 monitors to keep
+5. Remaining 5 should be archived
+6. Receive downgrade confirmation email
+
+---
+
+### Priority 3: Team Collaboration Features
+
+**Manual Test:**
+
+1. Create a team via POST /api/teams
+2. Invite a team member via POST /api/teams/[id]/invites
+3. Accept invite via /invites/[token]
+4. Switch to team context in TeamSelector
+5. Create a monitor (should have teamId set)
+6. Verify team members can view/edit based on role
+
+---
+
+### Priority 4: Stripe Proration & Mid-Cycle Upgrades
+
+**Manual Test:**
+
+1. Subscribe to Starter plan
+2. Upgrade to Pro plan immediately
+3. Should see proration preview showing prorated charge
+4. Confirm upgrade
+5. Receive upgrade confirmation email
+6. Check Stripe dashboard for prorated invoice
+
+---
+
+### Priority 5: Slack Integration
+
+**Already Complete!** Test by:
+
+1. Go to monitor settings
+2. Add Slack alert channel
+3. Enter Slack incoming webhook URL
+4. Test notification
+5. Verify message appears in Slack channel
+
+---
+
+### Priority 6: Failed Payment Handling
+
+**Manual Test:**
+
+1. Use Stripe test card that triggers payment failure: `4000000000000341`
+2. Wait for webhook to process
+3. Should see payment warning banner on dashboard
+4. Grace period should be set to 7 days
+5. Receive payment failed email
+6. Update payment method
+7. Payment should succeed and banner should disappear
+
+**Webhook Test:**
+
+Use Stripe CLI to trigger webhooks:
+
+```bash
+stripe trigger invoice.payment_failed
+stripe trigger invoice.payment_succeeded
+stripe trigger invoice.payment_action_required
+```
+
+---
+
+### Priority 7: Free Tier Abuse Prevention
+
+**Email Verification Test:**
+
+1. Sign up with new account
+2. Should see "Check your email!" message
+3. Try to create monitor before verifying
+4. Should get error: "Please verify your email address"
+5. Verify email via link
+6. Should now be able to create monitors
+
+**Rate Limiting Test:**
+
+```bash
+# Run automated test
+node apps/cronguard/scripts/test-rate-limiting.js
+
+# Or test manually by making rapid requests
+for i in {1..15}; do
+  curl http://localhost:3000/api/auth/session \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"idToken": "fake-token"}'
+  echo ""
+done
+
+# Should see 429 errors after 10 attempts
+```
+
+---
+
+## 📊 Test Coverage Summary
+
+| Feature            | Automated Tests | Manual Tests | Status   |
+| ------------------ | --------------- | ------------ | -------- |
+| Monitor Limits     | ✅              | ✅           | Complete |
+| Upgrade Flow       | ✅              | ✅           | Complete |
+| Downgrade Flow     | ✅              | ✅           | Complete |
+| Team Collaboration | ✅              | ✅           | Complete |
+| Team Invites       | ✅              | ✅           | Complete |
+| Stripe Proration   | ⚠️ Manual       | ✅           | Complete |
+| Payment Failures   | ⚠️ Manual       | ✅           | Complete |
+| Email Verification | ✅              | ✅           | Complete |
+| Rate Limiting      | ✅              | ✅           | Complete |
+| Alert Channels     | ⚠️ Manual       | ✅           | Complete |
+
+**Legend:**
+
+- ✅ = Fully tested
+- ⚠️ Manual = Requires manual testing (Stripe webhooks, etc.)
+
+---
+
+## 🎯 Pre-Deployment Checklist
+
+Before deploying to production, verify:
+
+- [ ] All automated tests pass: `node scripts/run-all-tests.js`
+- [ ] Email verification works for new signups
+- [ ] Rate limiting blocks excessive requests
+- [ ] Monitor limits are enforced correctly
+- [ ] Upgrade/downgrade flows work smoothly
+- [ ] Team collaboration features work
+- [ ] Payment failure webhooks are configured
+- [ ] Stripe proration is working correctly
+- [ ] All email templates render correctly
+- [ ] Alert channels (Slack, Discord, Email) work
+- [ ] Background checker runs on schedule
+- [ ] Environment variables are set correctly
