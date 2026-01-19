@@ -68,8 +68,39 @@ export default function TermsOfService() {
               <li>No refunds for partial months or unused services</li>
               <li>Price changes with 30 days notice</li>
             </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">5.1 Cancellation</h3>
+            <p className="text-gray-700 mb-4">You may cancel your subscription at any time through your billing portal. Upon cancellation:</p>
+            <ul className="list-disc pl-6 text-gray-700 mb-4">
+              <li>
+                <strong>Monthly Plans:</strong> Cancellation takes effect at the end of the current billing period. You retain access to paid features
+                until the period ends. No refunds for partial months.
+              </li>
+              <li>
+                <strong>Annual Plans:</strong> Cancellation takes effect at the end of the annual billing period. No refunds or pro-rated credits for
+                unused months.
+              </li>
+              <li>After cancellation, your account reverts to the Free plan and all your monitors will be automatically paused.</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">5.2 Payment Failures</h3>
+            <p className="text-gray-700 mb-4">If a payment fails:</p>
+            <ul className="list-disc pl-6 text-gray-700 mb-4">
+              <li>We will notify you via email</li>
+              <li>Stripe will automatically retry the payment</li>
+              <li>You will have a 7-day grace period to update your payment method</li>
+              <li>Your monitors will continue to function during the grace period</li>
+              <li>After 7 days without successful payment, your subscription will be cancelled and monitors will be paused</li>
+            </ul>
+
+            <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">5.3 Billing Disputes</h3>
             <p className="text-gray-700 mb-4">
-              You may cancel your subscription at any time. Cancellation takes effect at the end of the current billing period.
+              If you believe you have been incorrectly charged, please contact us at support@cronnarc.com within 30 days of the charge. Include your
+              account email and a description of the issue. We will investigate and respond promptly.
+            </p>
+            <p className="text-gray-700 mb-4">
+              All payments are processed securely through Stripe. If you initiate a chargeback with your bank, please contact us first so we can
+              resolve the issue directly.
             </p>
           </section>
 
@@ -140,7 +171,7 @@ export default function TermsOfService() {
             </p>
           </section>
 
-          {/* <section className="mb-8">
+          <section className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">13. Contact</h2>
             <p className="text-gray-700 mb-4">
               If you have any questions about these Terms, please contact us at:{" "}
@@ -148,7 +179,7 @@ export default function TermsOfService() {
                 support@cronnarc.com
               </a>
             </p>
-          </section> */}
+          </section>
         </div>
       </div>
     </div>

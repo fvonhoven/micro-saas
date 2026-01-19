@@ -2,9 +2,9 @@
 
 /**
  * Run All Tests
- * 
+ *
  * Runs all test scripts for CronNarc
- * 
+ *
  * Usage:
  *   node scripts/run-all-tests.js
  */
@@ -33,6 +33,16 @@ const tests = [
     script: "test-billing.js",
     description: "Tests monitor limits, upgrades, downgrades, and payment handling",
   },
+  {
+    name: "Signup Terms Checkbox",
+    script: "test-signup-terms.js",
+    description: "Tests that signup requires agreement to Terms and Privacy Policy",
+  },
+  {
+    name: "Cancellation Monitor Pausing",
+    script: "test-cancellation-pausing.js",
+    description: "Tests that subscription cancellation automatically pauses all monitors",
+  },
 ]
 
 function runTest(test) {
@@ -49,7 +59,7 @@ function runTest(test) {
       cwd: process.cwd(),
     })
 
-    child.on("close", (code) => {
+    child.on("close", code => {
       if (code === 0) {
         console.log(`\n✅ ${test.name} - PASSED`)
         resolve()
@@ -59,7 +69,7 @@ function runTest(test) {
       }
     })
 
-    child.on("error", (error) => {
+    child.on("error", error => {
       console.error(`\n❌ ${test.name} - ERROR:`, error.message)
       reject(error)
     })
@@ -100,13 +110,13 @@ async function runAllTests() {
 
   if (results.passed.length > 0) {
     console.log("✅ Passed tests:")
-    results.passed.forEach((name) => console.log(`   - ${name}`))
+    results.passed.forEach(name => console.log(`   - ${name}`))
     console.log("")
   }
 
   if (results.failed.length > 0) {
     console.log("❌ Failed tests:")
-    results.failed.forEach((name) => console.log(`   - ${name}`))
+    results.failed.forEach(name => console.log(`   - ${name}`))
     console.log("")
   }
 
@@ -122,11 +132,10 @@ async function runAllTests() {
 }
 
 // Handle errors
-process.on("unhandledRejection", (error) => {
+process.on("unhandledRejection", error => {
   console.error("\n❌ Unhandled error:", error)
   process.exit(1)
 })
 
 // Run tests
 runAllTests()
-

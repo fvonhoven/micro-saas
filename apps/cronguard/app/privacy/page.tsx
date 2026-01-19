@@ -177,15 +177,21 @@ export default function PrivacyPolicy() {
                 <strong>Correction:</strong> Update inaccurate information
               </li>
               <li>
-                <strong>Deletion:</strong> Delete your account and data
+                <strong>Deletion:</strong> Delete your account and data via your profile settings
               </li>
               <li>
-                <strong>Export:</strong> Download your monitor data
+                <strong>Export:</strong> Request your data by contacting us (we will provide within 30 days)
               </li>
               <li>
                 <strong>Opt-out:</strong> Unsubscribe from marketing emails
               </li>
             </ul>
+            <p className="text-gray-700 mb-4">
+              To exercise these rights, contact us at{" "}
+              <a href="mailto:support@cronnarc.com" className="text-purple-600 hover:text-purple-700">
+                support@cronnarc.com
+              </a>
+            </p>
             {/* <p className="text-gray-700 mb-4">
               To exercise these rights, contact us at{" "}
               <a href="mailto:privacy@cronnarc.com" className="text-purple-600 hover:text-purple-700">
@@ -269,24 +275,18 @@ export default function PrivacyPolicy() {
             </p>
           </section>
 
-          {/* <section className="mb-8">
+          <section className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">12. Contact Us</h2>
             <p className="text-gray-700 mb-4">If you have questions about this Privacy Policy or our data practices, contact us at:</p>
             <ul className="list-none text-gray-700 mb-4">
               <li>
                 <strong>Email:</strong>{" "}
-                <a href="mailto:privacy@cronnarc.com" className="text-purple-600 hover:text-purple-700">
-                  privacy@cronnarc.com
-                </a>
-              </li>
-              <li>
-                <strong>Support:</strong>{" "}
                 <a href="mailto:support@cronnarc.com" className="text-purple-600 hover:text-purple-700">
                   support@cronnarc.com
                 </a>
               </li>
             </ul>
-          </section> */}
+          </section>
         </div>
       </div>
     </div>

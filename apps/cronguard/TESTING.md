@@ -34,6 +34,8 @@ node apps/cronguard/scripts/run-all-tests.js
 - ✅ Email verification flow
 - ✅ Team collaboration features
 - ✅ Billing and monitor limits
+- ✅ Signup terms checkbox requirement
+- ✅ Subscription cancellation monitor pausing
 
 ---
 
@@ -527,20 +529,92 @@ done
 
 ---
 
+### Signup Terms & Privacy Agreement
+
+**Automated Test:**
+
+```bash
+# Run automated test
+node apps/cronguard/scripts/test-signup-terms.js
+```
+
+**Manual Test:**
+
+1. Go to `/signup`
+2. Fill in name, email, and password
+3. Notice the "Sign Up" button is disabled until checkbox is checked
+4. Try to submit without checking the terms checkbox
+5. Should see validation error
+6. Check the "I agree to the Terms of Service and Privacy Policy" checkbox
+7. Verify links to `/terms` and `/privacy` open in new tabs
+8. Submit form - should work now
+
+**What's tested:**
+
+- ✅ Terms checkbox is present and required
+- ✅ Terms of Service link is present
+- ✅ Privacy Policy link is present
+- ✅ Button is disabled until checkbox is checked
+- ✅ Form validation prevents submission without agreement
+
+---
+
+### Subscription Cancellation Monitor Pausing
+
+**Automated Test:**
+
+```bash
+# Run automated test
+node apps/cronguard/scripts/test-cancellation-pausing.js
+```
+
+**Manual Test (requires Stripe webhook):**
+
+1. Create a paid subscription via Stripe Checkout
+2. Create several monitors
+3. Cancel the subscription in Stripe Dashboard
+4. Stripe sends `customer.subscription.deleted` webhook
+5. Verify all monitors are automatically paused
+6. Check user's subscription status is set to "canceled"
+7. Verify monitors can be manually resumed if needed
+
+**What's tested:**
+
+- ✅ Webhook handler for `customer.subscription.deleted` exists
+- ✅ Updates user subscription status to "canceled"
+- ✅ Queries all monitors belonging to the user
+- ✅ Uses batch update for efficiency
+- ✅ Sets monitor status to PAUSED
+- ✅ Only pauses monitors that aren't already paused
+- ✅ Logs the pausing action for debugging
+- ✅ Terms of Service accurately reflects this behavior
+
+**How it works:**
+
+1. User cancels subscription in Stripe
+2. Stripe sends `customer.subscription.deleted` webhook
+3. Webhook handler updates user status to "canceled"
+4. Webhook handler pauses all active monitors
+5. User can manually resume monitors if needed (on free tier limits)
+
+---
+
 ## 📊 Test Coverage Summary
 
-| Feature            | Automated Tests | Manual Tests | Status   |
-| ------------------ | --------------- | ------------ | -------- |
-| Monitor Limits     | ✅              | ✅           | Complete |
-| Upgrade Flow       | ✅              | ✅           | Complete |
-| Downgrade Flow     | ✅              | ✅           | Complete |
-| Team Collaboration | ✅              | ✅           | Complete |
-| Team Invites       | ✅              | ✅           | Complete |
-| Stripe Proration   | ⚠️ Manual       | ✅           | Complete |
-| Payment Failures   | ⚠️ Manual       | ✅           | Complete |
-| Email Verification | ✅              | ✅           | Complete |
-| Rate Limiting      | ✅              | ✅           | Complete |
-| Alert Channels     | ⚠️ Manual       | ✅           | Complete |
+| Feature                    | Automated Tests | Manual Tests | Status   |
+| -------------------------- | --------------- | ------------ | -------- |
+| Monitor Limits             | ✅              | ✅           | Complete |
+| Upgrade Flow               | ✅              | ✅           | Complete |
+| Downgrade Flow             | ✅              | ✅           | Complete |
+| Team Collaboration         | ✅              | ✅           | Complete |
+| Team Invites               | ✅              | ✅           | Complete |
+| Stripe Proration           | ⚠️ Manual       | ✅           | Complete |
+| Payment Failures           | ⚠️ Manual       | ✅           | Complete |
+| Email Verification         | ✅              | ✅           | Complete |
+| Rate Limiting              | ✅              | ✅           | Complete |
+| Alert Channels             | ⚠️ Manual       | ✅           | Complete |
+| Signup Terms Agreement     | ✅              | ✅           | Complete |
+| Cancellation Monitor Pause | ✅              | ⚠️ Manual    | Complete |
 
 **Legend:**
 
@@ -565,3 +639,5 @@ Before deploying to production, verify:
 - [ ] Alert channels (Slack, Discord, Email) work
 - [ ] Background checker runs on schedule
 - [ ] Environment variables are set correctly
+- [ ] Signup requires terms/privacy agreement
+- [ ] Subscription cancellation pauses monitors

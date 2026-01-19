@@ -60,12 +60,33 @@ export async function handleStripeWebhook(event: Stripe.Event) {
         return
       }
 
+      // Update user subscription status
       await adminDb.collection("users").doc(userId).update({
         stripePriceId: null,
         stripeCurrentPeriodEnd: null,
         paymentStatus: "canceled",
         gracePeriodEndsAt: null,
       })
+
+      // Pause all user's monitors
+      const monitorsSnapshot = await adminDb.collection("monitors").where("userId", "==", userId).get()
+
+      if (!monitorsSnapshot.empty) {
+        const batch = adminDb.batch()
+        let pausedCount = 0
+
+        monitorsSnapshot.docs.forEach(doc => {
+          // Only pause monitors that aren't already paused
+          if (doc.data().status !== "PAUSED") {
+            batch.update(doc.ref, { status: "PAUSED" })
+            pausedCount++
+          }
+        })
+
+        await batch.commit()
+        console.log(`Subscription canceled for user ${userId}, paused ${pausedCount} monitors`)
+      }
+
       break
     }
 

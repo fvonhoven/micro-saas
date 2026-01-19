@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [verificationSent, setVerificationSent] = useState(false)
@@ -20,6 +21,12 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Service and Privacy Policy to create an account")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -113,7 +120,28 @@ export default function SignupPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreedToTerms}
+              onChange={e => setAgreedToTerms(e.target.checked)}
+              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              required
+            />
+            <label htmlFor="terms" className="text-sm text-gray-600">
+              I agree to the{" "}
+              <Link href="/terms" target="_blank" className="text-purple-600 hover:text-purple-700 underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" target="_blank" className="text-purple-600 hover:text-purple-700 underline">
+                Privacy Policy
+              </Link>
+            </label>
+          </div>
+
+          <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
             {loading ? "Creating account..." : "Sign Up"}
           </Button>
         </form>
