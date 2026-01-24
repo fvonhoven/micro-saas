@@ -69,6 +69,7 @@ export default function MonitorDetailsPage() {
   const [savingStatusPage, setSavingStatusPage] = useState(false)
   const [hasStatusPageChanges, setHasStatusPageChanges] = useState(false)
   const [copiedTooltip, setCopiedTooltip] = useState(false)
+  const [copiedBadge, setCopiedBadge] = useState<string | null>(null)
 
   // Store original values to detect changes
   const [originalStatusPageEnabled, setOriginalStatusPageEnabled] = useState(false)
@@ -189,6 +190,22 @@ export default function MonitorDetailsPage() {
     // Show tooltip
     setCopiedTooltip(true)
     setTimeout(() => setCopiedTooltip(false), 2000)
+  }
+
+  const copyBadgeCode = (type: "status" | "uptime") => {
+    const baseUrl = window.location.origin
+    const slug = monitor?.slug
+    let code = ""
+
+    if (type === "status") {
+      code = `![Monitor Status](${baseUrl}/api/badge/${slug})`
+    } else {
+      code = `![Uptime](${baseUrl}/api/badge/${slug}/uptime?period=30d)`
+    }
+
+    navigator.clipboard.writeText(code)
+    setCopiedBadge(type)
+    setTimeout(() => setCopiedBadge(null), 2000)
   }
 
   if (authLoading || loading) {
@@ -560,6 +577,54 @@ export default function MonitorDetailsPage() {
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
+                </div>
+
+                {/* Status Badges */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">📛 Embeddable Badges</h3>
+                  <p className="text-xs text-gray-600 mb-4">Add these badges to your README, documentation, or website to show monitor status.</p>
+
+                  {/* Status Badge */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">Status Badge</label>
+                      <img src={`/api/badge/${monitor.slug}`} alt="Status Badge" className="h-5" />
+                    </div>
+                    <div className="flex gap-2">
+                      <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-300 break-all">
+                        {typeof window !== "undefined" ? `![Monitor Status](${window.location.origin}/api/badge/${monitor.slug})` : ""}
+                      </code>
+                      <div className="relative">
+                        <button
+                          onClick={() => copyBadgeCode("status")}
+                          className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+                        >
+                          {copiedBadge === "status" ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Uptime Badge */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">Uptime Badge (30 days)</label>
+                      <img src={`/api/badge/${monitor.slug}/uptime?period=30d`} alt="Uptime Badge" className="h-5" />
+                    </div>
+                    <div className="flex gap-2">
+                      <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-300 break-all">
+                        {typeof window !== "undefined" ? `![Uptime](${window.location.origin}/api/badge/${monitor.slug}/uptime?period=30d)` : ""}
+                      </code>
+                      <div className="relative">
+                        <button
+                          onClick={() => copyBadgeCode("uptime")}
+                          className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors whitespace-nowrap"
+                        >
+                          {copiedBadge === "uptime" ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </>
             )}

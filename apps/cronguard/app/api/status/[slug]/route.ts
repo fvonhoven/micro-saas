@@ -108,28 +108,48 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     })
 
     // Return public data only
-    return NextResponse.json({
-      monitor: {
-        name: monitor.name,
-        status: monitor.status,
-        lastPingAt: monitor.lastPingAt ? monitor.lastPingAt.toDate().toISOString() : null,
-        createdAt: createdAt.toISOString(),
-        statusPageTitle: monitor.statusPageTitle || null,
-        statusPageDescription: monitor.statusPageDescription || null,
-      },
-      analytics: {
-        uptime: {
-          last30d: uptime30d,
-          last90d: uptime90d,
+    return NextResponse.json(
+      {
+        monitor: {
+          name: monitor.name,
+          status: monitor.status,
+          lastPingAt: monitor.lastPingAt ? monitor.lastPingAt.toDate().toISOString() : null,
+          createdAt: createdAt.toISOString(),
+          statusPageTitle: monitor.statusPageTitle || null,
+          statusPageDescription: monitor.statusPageDescription || null,
         },
-        incidents: {
-          recent: recentIncidents,
+        analytics: {
+          uptime: {
+            last30d: uptime30d,
+            last90d: uptime90d,
+          },
+          incidents: {
+            recent: recentIncidents,
+          },
         },
       },
-    })
+      {
+        headers: {
+          "Access-Control-Allow-Origin": "*", // Allow CORS for public API
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Cache-Control": "public, max-age=60, s-maxage=60", // Cache for 1 minute
+        },
+      },
+    )
   } catch (error) {
     console.error("Status page error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    },
+  })
+}
