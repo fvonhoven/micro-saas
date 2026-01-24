@@ -36,6 +36,7 @@ node apps/cronguard/scripts/run-all-tests.js
 - ✅ Billing and monitor limits
 - ✅ Signup terms checkbox requirement
 - ✅ Subscription cancellation monitor pausing
+- ✅ Logout functionality (session + Firebase auth)
 
 ---
 
@@ -599,6 +600,49 @@ node apps/cronguard/scripts/test-cancellation-pausing.js
 
 ---
 
+### Logout Functionality
+
+**Automated Test:**
+
+```bash
+# Run automated test
+node apps/cronguard/scripts/test-logout.js
+```
+
+**Manual Test:**
+
+1. Log in to the dashboard
+2. Click on your profile avatar (top right)
+3. Click "Logout"
+4. Verify you're redirected to `/login`
+5. Try to access `/dashboard` directly
+6. Should be redirected back to `/login` (not logged in)
+7. Check browser cookies - `session` cookie should be deleted
+
+**What's tested:**
+
+- ✅ DELETE `/api/auth/session` endpoint exists and works
+- ✅ Session cookie is properly deleted
+- ✅ Dashboard logout implementation is complete
+- ✅ Pricing page logout implementation is complete
+- ✅ Profile page logout implementation is complete
+- ✅ Monitor detail page logout implementation is complete
+- ✅ Team settings page logout implementation is complete
+
+**How it works:**
+
+1. User clicks "Logout" button
+2. Client calls `DELETE /api/auth/session` to delete server-side session cookie
+3. Client calls Firebase `signOut(auth)` to clear client-side auth state
+4. User is redirected to `/login`
+5. All subsequent requests are unauthenticated
+
+**Bug Fixed:**
+
+Previously, some pages (pricing, monitor detail) had incomplete logout implementations that only redirected to `/login` without actually logging out. This caused users to remain logged in after clicking "Logout". All pages now properly clear both session cookies and Firebase auth state.
+
+---
+
 ## 📊 Test Coverage Summary
 
 | Feature                    | Automated Tests | Manual Tests | Status   |
@@ -615,6 +659,7 @@ node apps/cronguard/scripts/test-cancellation-pausing.js
 | Alert Channels             | ⚠️ Manual       | ✅           | Complete |
 | Signup Terms Agreement     | ✅              | ✅           | Complete |
 | Cancellation Monitor Pause | ✅              | ⚠️ Manual    | Complete |
+| Logout Functionality       | ✅              | ✅           | Complete |
 
 **Legend:**
 
@@ -641,3 +686,4 @@ Before deploying to production, verify:
 - [ ] Environment variables are set correctly
 - [ ] Signup requires terms/privacy agreement
 - [ ] Subscription cancellation pauses monitors
+- [ ] Logout properly clears session and Firebase auth

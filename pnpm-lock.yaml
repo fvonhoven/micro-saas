@@ -26,6 +26,9 @@ importers:
 
   apps/cronguard:
     dependencies:
+      '@hcaptcha/react-hcaptcha':
+        specifier: ^2.0.2
+        version: 2.0.2
       '@netlify/functions':
         specifier: ^5.1.2
         version: 5.1.2
@@ -1546,6 +1549,10 @@ packages:
       yargs: 17.7.2
     dev: false
     optional: true
+
+  /@hcaptcha/react-hcaptcha@2.0.2:
+    resolution: {integrity: sha512-VbuH6VJ6m3BHmVBHs0fL9t+suZd7PQEqCzqL2BiUbBvbHI3XfvSgdiug2QiEPN8zskbPTIV/FfGPF53JCckrow==}
+    dev: false
 
   /@humanwhocodes/config-array@0.13.0:
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}

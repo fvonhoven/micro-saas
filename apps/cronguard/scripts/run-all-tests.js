@@ -43,6 +43,11 @@ const tests = [
     script: "test-cancellation-pausing.js",
     description: "Tests that subscription cancellation automatically pauses all monitors",
   },
+  {
+    name: "Logout Functionality",
+    script: "test-logout.js",
+    description: "Tests that logout properly clears session cookies and Firebase auth",
+  },
 ]
 
 function runTest(test) {

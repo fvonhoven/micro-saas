@@ -7,6 +7,10 @@ import { doc, setDoc } from "firebase/firestore"
 import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+// Dynamically import hCaptcha to avoid SSR issues
+const HCaptcha = dynamic(() => import("../../../components/HCaptcha"), { ssr: false })
 
 export default function SignupPage() {
   const [email, setEmail] = useState("")
@@ -16,7 +20,23 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [verificationSent, setVerificationSent] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const router = useRouter()
+
+  const handleCaptchaVerify = (token: string) => {
+    setCaptchaToken(token)
+    setError("") // Clear any captcha errors
+  }
+
+  const handleCaptchaError = () => {
+    setError("Captcha verification failed. Please try again.")
+    setCaptchaToken(null)
+  }
+
+  const handleCaptchaExpire = () => {
+    setCaptchaToken(null)
+    setError("Captcha expired. Please verify again.")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -24,6 +44,12 @@ export default function SignupPage() {
 
     if (!agreedToTerms) {
       setError("You must agree to the Terms of Service and Privacy Policy to create an account")
+      return
+    }
+
+    // Verify captcha is completed
+    if (!captchaToken) {
+      setError("Please complete the captcha verification")
       return
     }
 
@@ -57,9 +83,21 @@ export default function SignupPage() {
         body: JSON.stringify({ idToken }),
       })
 
+      // Clear form fields for security (UX improvement)
+      setEmail("")
+      setPassword("")
+      setName("")
+      setAgreedToTerms(false)
+      setCaptchaToken(null)
+
       setVerificationSent(true)
-    } catch (err: any) {
-      setError(err.message || "Failed to create account")
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to create account")
+      } else {
+        setError("Failed to create account")
+      }
+      setCaptchaToken(null) // Reset captcha on error
     } finally {
       setLoading(false)
     }
@@ -141,7 +179,13 @@ export default function SignupPage() {
             </label>
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
+          <HCaptcha 
+            onVerify={handleCaptchaVerify}
+            onError={handleCaptchaError}
+            onExpire={handleCaptchaExpire}
+          />
+
+          <Button type="submit" className="w-full" disabled={loading || !agreedToTerms || !captchaToken}>
             {loading ? "Creating account..." : "Sign Up"}
           </Button>
         </form>

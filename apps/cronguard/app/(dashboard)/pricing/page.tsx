@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { PLAN_METADATA } from "@repo/billing/client"
 import Link from "next/link"
+import { signOut } from "firebase/auth"
+import { auth } from "@repo/firebase/client"
 
 export default function PricingPage() {
   const { user } = useAuthContext()
@@ -13,6 +15,18 @@ export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual")
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+
+  const handleLogout = async () => {
+    try {
+      // Delete session cookie
+      await fetch("/api/auth/session", { method: "DELETE" })
+      // Sign out from Firebase
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
 
   const handleSubscribe = async (planId: string) => {
     if (!user) {
@@ -87,13 +101,7 @@ export default function PricingPage() {
                       <Link href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
                         Profile Settings
                       </Link>
-                      <button
-                        onClick={() => {
-                          // Sign out logic would go here
-                          router.push("/login")
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                      >
+                      <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
                         Logout
                       </button>
                     </div>

@@ -6,6 +6,8 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ToastContainer, useToast } from "@/components/Toast"
 import { AlertChannels } from "@/components/AlertChannels"
+import { signOut } from "firebase/auth"
+import { auth } from "@repo/firebase/client"
 
 interface Analytics {
   uptime: {
@@ -75,6 +77,18 @@ export default function MonitorDetailsPage() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
   const { toasts, addToast, removeToast } = useToast()
+
+  const handleLogout = async () => {
+    try {
+      // Delete session cookie
+      await fetch("/api/auth/session", { method: "DELETE" })
+      // Sign out from Firebase
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
+  }
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -300,13 +314,7 @@ export default function MonitorDetailsPage() {
                   >
                     Dashboard
                   </button>
-                  <button
-                    onClick={() => {
-                      // Sign out logic would go here
-                      router.push("/login")
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
-                  >
+                  <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">
                     Logout
                   </button>
                 </div>

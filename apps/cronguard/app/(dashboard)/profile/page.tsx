@@ -171,8 +171,15 @@ export default function ProfilePage() {
   }
 
   const handleLogout = async () => {
-    await signOut(auth)
-    router.push("/login")
+    try {
+      // Delete session cookie
+      await fetch("/api/auth/session", { method: "DELETE" })
+      // Sign out from Firebase
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
   }
 
   const handleDeleteAccount = async () => {

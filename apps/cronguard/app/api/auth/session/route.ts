@@ -1,23 +1,14 @@
 import { adminAuth } from "@repo/firebase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { authRateLimiter, getClientIp } from "@/lib/rate-limiter"
+import { withRateLimit } from "../../../../lib/with-rate-limit"
+import { resetRateLimit } from "../../../../lib/rate-limiter-ip"
 
 export async function POST(req: NextRequest) {
-  // Rate limiting for auth attempts
-  const clientIp = getClientIp(req)
-
-  if (!authRateLimiter.check(clientIp)) {
-    const resetTime = authRateLimiter.getResetTime(clientIp)
-    const resetDate = resetTime ? new Date(resetTime) : new Date()
-
-    return NextResponse.json(
-      {
-        error: "Too many authentication attempts. Please try again later.",
-        resetAt: resetDate.toISOString(),
-      },
-      { status: 429 },
-    )
+  // Check rate limit
+  const rateLimitResult = await withRateLimit(req, "auth:login")
+  if (!rateLimitResult.allowed) {
+    return rateLimitResult.response!
   }
 
   try {
@@ -44,9 +35,12 @@ export async function POST(req: NextRequest) {
       path: "/",
     })
 
+    // Reset rate limit on successful auth
+    await resetRateLimit(rateLimitResult.ip, "auth:login")
+
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Session creation error:", error)
+    console.error("[Session] Creation error:", error)
     return NextResponse.json({ error: "Failed to create session" }, { status: 500 })
   }
 }

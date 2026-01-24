@@ -6,17 +6,44 @@ import { auth } from "@repo/firebase/client"
 import { Button } from "@repo/ui"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import dynamic from "next/dynamic"
+
+// Dynamically import hCaptcha to avoid SSR issues
+const HCaptcha = dynamic(() => import("../../../components/HCaptcha"), { ssr: false })
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const router = useRouter()
+
+  const handleCaptchaVerify = (token: string) => {
+    setCaptchaToken(token)
+    setError("") // Clear any captcha errors
+  }
+
+  const handleCaptchaError = () => {
+    setError("Captcha verification failed. Please try again.")
+    setCaptchaToken(null)
+  }
+
+  const handleCaptchaExpire = () => {
+    setCaptchaToken(null)
+    setError("Captcha expired. Please verify again.")
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    // Verify captcha is completed
+    if (!captchaToken) {
+      setError("Please complete the captcha verification")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -31,8 +58,13 @@ export default function LoginPage() {
       })
 
       router.push("/dashboard")
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in")
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message || "Failed to sign in")
+      } else {
+        setError("Failed to sign in")
+      }
+      setCaptchaToken(null) // Reset captcha on error
     } finally {
       setLoading(false)
     }
@@ -67,7 +99,13 @@ export default function LoginPage() {
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <HCaptcha 
+            onVerify={handleCaptchaVerify}
+            onError={handleCaptchaError}
+            onExpire={handleCaptchaExpire}
+          />
+
+          <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
