@@ -2,6 +2,7 @@ import { adminDb } from "@repo/firebase/admin"
 import { NextRequest, NextResponse } from "next/server"
 import { monitorRecoveryEmail } from "../../../../lib/email-templates"
 import { sendAlertToChannels, type AlertChannel, type AlertPayload } from "../../../../lib/alert-channels"
+import { notifySubscribersMonitorRecovery } from "../../../../lib/notify-subscribers"
 
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
@@ -140,6 +141,16 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
                 // Send to all channels
                 const result = await sendAlertToChannels(channels, payload, emailHtml, emailSubject)
                 console.log(`Monitor ${monitor.name} recovered - alerts sent to ${result.success} channels (${result.failed} failed)`)
+
+                // Notify subscribers if status page is enabled
+                if (monitor.statusPageEnabled && mostRecentIncident) {
+                  try {
+                    const downtimeMs = now.getTime() - startedAt.getTime()
+                    await notifySubscribersMonitorRecovery(monitorDoc.ref, monitor, downtimeMs)
+                  } catch (subscriberError) {
+                    console.error(`Failed to notify subscribers for ${monitor.name}:`, subscriberError)
+                  }
+                }
               }
             } catch (alertError) {
               console.error(`Failed to send recovery alerts for ${monitor.name}:`, alertError)

@@ -3,6 +3,7 @@ import { initializeApp, getApps, cert } from "firebase-admin/app"
 import { getFirestore } from "firebase-admin/firestore"
 import { monitorDownEmail } from "../../lib/email-templates"
 import { sendAlertToChannels, type AlertChannel, type AlertPayload } from "../../lib/alert-channels"
+import { notifySubscribersMonitorDown } from "../../lib/notify-subscribers"
 
 // Initialize Firebase Admin
 if (!getApps().length) {
@@ -143,6 +144,15 @@ const handler = schedule("*/5 * * * *", async () => {
             }
           } else {
             console.log(`Monitor ${monitor.name} is DOWN - no alert channels configured`)
+          }
+
+          // Notify subscribers if status page is enabled
+          if (monitor.statusPageEnabled) {
+            try {
+              await notifySubscribersMonitorDown(doc.ref, monitor)
+            } catch (subscriberError) {
+              console.error(`Failed to notify subscribers for ${monitor.name}:`, subscriberError)
+            }
           }
         } else {
           console.log(`Monitor ${monitor.name} is still DOWN (no new alert sent)`)

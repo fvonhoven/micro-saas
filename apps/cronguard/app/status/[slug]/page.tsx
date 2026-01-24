@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import UptimeChart from "../../../components/UptimeChart"
 
 interface Monitor {
   name: string
@@ -36,6 +37,9 @@ export default function PublicStatusPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  const [subscribeEmail, setSubscribeEmail] = useState("")
+  const [subscribing, setSubscribing] = useState(false)
+  const [subscribeMessage, setSubscribeMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   useEffect(() => {
     if (slug) {
@@ -52,7 +56,16 @@ export default function PublicStatusPage() {
 
   const fetchStatusData = async () => {
     try {
-      const response = await fetch(`/api/status/${slug}`)
+      // Add timestamp to force cache busting
+      const timestamp = new Date().getTime()
+      const response = await fetch(`/api/status/${slug}?_t=${timestamp}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      })
       if (!response.ok) {
         if (response.status === 404) {
           setError("Status page not found or not enabled")
@@ -93,6 +106,36 @@ export default function PublicStatusPage() {
     const days = Math.floor(hours / 24)
     const remainingHours = hours % 24
     return remainingHours > 0 ? `${days}d ${remainingHours}h` : `${days}d`
+  }
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubscribing(true)
+    setSubscribeMessage(null)
+
+    try {
+      const response = await fetch(`/api/subscriptions/${slug}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: subscribeEmail }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSubscribeMessage({
+          type: "success",
+          text: "Successfully subscribed! You'll receive email updates when this monitor goes down or recovers.",
+        })
+        setSubscribeEmail("")
+      } else {
+        setSubscribeMessage({ type: "error", text: data.error || "Failed to subscribe" })
+      }
+    } catch (err) {
+      setSubscribeMessage({ type: "error", text: "Failed to subscribe. Please try again." })
+    } finally {
+      setSubscribing(false)
+    }
   }
 
   if (loading) {
@@ -193,6 +236,9 @@ export default function PublicStatusPage() {
           </div>
         </div>
 
+        {/* 90-Day Uptime History Chart */}
+        <UptimeChart slug={slug} />
+
         {/* Recent Incidents */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Incidents</h2>
@@ -212,6 +258,39 @@ export default function PublicStatusPage() {
                   </p>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Email Subscription */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">📧 Subscribe to Updates</h2>
+          <p className="text-sm text-gray-600 mb-4">Get notified via email when this service goes down or recovers.</p>
+
+          <form onSubmit={handleSubscribe} className="flex gap-2">
+            <input
+              type="email"
+              value={subscribeEmail}
+              onChange={e => setSubscribeEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              disabled={subscribing}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+            />
+            <button
+              type="submit"
+              disabled={subscribing}
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {subscribing ? "Subscribing..." : "Subscribe"}
+            </button>
+          </form>
+
+          {subscribeMessage && (
+            <div
+              className={`mt-3 p-3 rounded-lg text-sm ${subscribeMessage.type === "success" ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"}`}
+            >
+              {subscribeMessage.text}
             </div>
           )}
         </div>

@@ -52,6 +52,8 @@ interface Monitor {
   alertEmail?: string
   timezone?: string
   createdAt: any
+  statusPageTitle?: string
+  statusPageDescription?: string
 }
 
 export default function MonitorDetailsPage() {
@@ -70,6 +72,7 @@ export default function MonitorDetailsPage() {
   const [hasStatusPageChanges, setHasStatusPageChanges] = useState(false)
   const [copiedTooltip, setCopiedTooltip] = useState(false)
   const [copiedBadge, setCopiedBadge] = useState<string | null>(null)
+  const [copiedWidget, setCopiedWidget] = useState(false)
 
   // Store original values to detect changes
   const [originalStatusPageEnabled, setOriginalStatusPageEnabled] = useState(false)
@@ -159,8 +162,8 @@ export default function MonitorDetailsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           statusPageEnabled,
-          statusPageTitle: statusPageTitle || undefined,
-          statusPageDescription: statusPageDescription || undefined,
+          statusPageTitle: statusPageTitle.trim() || null,
+          statusPageDescription: statusPageDescription.trim() || null,
         }),
       })
 
@@ -206,6 +209,16 @@ export default function MonitorDetailsPage() {
     navigator.clipboard.writeText(code)
     setCopiedBadge(type)
     setTimeout(() => setCopiedBadge(null), 2000)
+  }
+
+  const copyWidgetCode = () => {
+    const baseUrl = window.location.origin
+    const slug = monitor?.slug
+    const code = `<script src="${baseUrl}/api/widget/${slug}"></script>`
+
+    navigator.clipboard.writeText(code)
+    setCopiedWidget(true)
+    setTimeout(() => setCopiedWidget(false), 2000)
   }
 
   if (authLoading || loading) {
@@ -624,6 +637,54 @@ export default function MonitorDetailsPage() {
                         </button>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Embeddable Widget */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">🔌 Embeddable Widget</h3>
+                  <p className="text-xs text-gray-600 mb-4">Add a live status widget to your website with a single line of code.</p>
+
+                  <div className="mb-4">
+                    <label className="text-xs font-medium text-gray-700 mb-2 block">Widget Preview</label>
+                    <div className="bg-white border border-gray-300 rounded p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div
+                          className={`w-3 h-3 rounded-full ${monitor.status === "HEALTHY" ? "bg-green-500" : monitor.status === "LATE" ? "bg-yellow-500" : monitor.status === "DOWN" ? "bg-red-500" : "bg-gray-500"}`}
+                        ></div>
+                        <h4 className="text-sm font-semibold">{monitor.statusPageTitle || monitor.name}</h4>
+                      </div>
+                      <p className="text-xs text-gray-600">
+                        {monitor.status === "HEALTHY"
+                          ? "All Systems Operational"
+                          : monitor.status === "LATE"
+                            ? "Degraded Performance"
+                            : monitor.status === "DOWN"
+                              ? "System Down"
+                              : "Status Unknown"}
+                      </p>
+                      <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600">
+                        30-day uptime: <strong>--.--%</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-700 mb-2 block">Embed Code</label>
+                    <div className="flex gap-2">
+                      <code className="flex-1 text-xs bg-white px-3 py-2 rounded border border-gray-300 break-all">
+                        {typeof window !== "undefined" ? `<script src="${window.location.origin}/api/widget/${monitor.slug}"></script>` : ""}
+                      </code>
+                      <div className="relative">
+                        <button
+                          onClick={copyWidgetCode}
+                          className="px-3 py-2 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors whitespace-nowrap"
+                        >
+                          {copiedWidget ? "✓ Copied" : "Copy"}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Paste this code anywhere in your HTML. The widget will auto-update every 60 seconds.</p>
                   </div>
                 </div>
               </>

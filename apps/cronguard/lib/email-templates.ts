@@ -823,3 +823,100 @@ export function downgradeConfirmationEmail({
     content: content.replace(/{{dashboardUrl}}/g, dashboardUrl),
   })
 }
+
+/**
+ * Subscriber Monitor Down Email Template
+ */
+interface SubscriberMonitorDownEmailProps {
+  monitorName: string
+  statusPageUrl: string
+  lastPingAt: string | null
+  unsubscribeUrl: string
+}
+
+export function subscriberMonitorDownEmail({ monitorName, statusPageUrl, lastPingAt, unsubscribeUrl }: SubscriberMonitorDownEmailProps): string {
+  const content = `
+    <h2 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 16px 0;">
+      🚨 Service Down: ${monitorName}
+    </h2>
+
+    <p style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 24px 0;">
+      The service you're monitoring has stopped responding and is now marked as <strong style="color: #dc2626;">DOWN</strong>.
+    </p>
+
+    <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 24px 0; border-radius: 4px;">
+      <p style="font-size: 14px; color: #991b1b; margin: 0;">
+        <strong>Last Check-in:</strong> ${lastPingAt || "Never"}
+      </p>
+    </div>
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${statusPageUrl}"
+         style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        View Status Page
+      </a>
+    </div>
+
+    <p style="font-size: 14px; line-height: 20px; color: #6b7280; margin: 24px 0 0 0;">
+      You're receiving this because you subscribed to updates for ${monitorName}.
+      <a href="${unsubscribeUrl}" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+    </p>
+  `
+
+  return emailLayout({
+    title: `🚨 Service Down: ${monitorName}`,
+    previewText: `${monitorName} has stopped responding and is now marked as DOWN.`,
+    content,
+  })
+}
+
+/**
+ * Subscriber Monitor Recovery Email Template
+ */
+interface SubscriberMonitorRecoveryEmailProps {
+  monitorName: string
+  statusPageUrl: string
+  downtimeMinutes: number
+  unsubscribeUrl: string
+}
+
+export function subscriberMonitorRecoveryEmail({
+  monitorName,
+  statusPageUrl,
+  downtimeMinutes,
+  unsubscribeUrl,
+}: SubscriberMonitorRecoveryEmailProps): string {
+  const content = `
+    <h2 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 16px 0;">
+      ✅ Service Recovered: ${monitorName}
+    </h2>
+
+    <p style="font-size: 16px; line-height: 24px; color: #4b5563; margin: 0 0 24px 0;">
+      Good news! The service has recovered and is now <strong style="color: #059669;">HEALTHY</strong>.
+    </p>
+
+    <div style="background: #f0fdf4; border-left: 4px solid #059669; padding: 16px; margin: 24px 0; border-radius: 4px;">
+      <p style="font-size: 14px; color: #065f46; margin: 0;">
+        <strong>Total Downtime:</strong> ${downtimeMinutes} minutes
+      </p>
+    </div>
+
+    <div style="text-align: center; margin: 32px 0;">
+      <a href="${statusPageUrl}"
+         style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        View Status Page
+      </a>
+    </div>
+
+    <p style="font-size: 14px; line-height: 20px; color: #6b7280; margin: 24px 0 0 0;">
+      You're receiving this because you subscribed to updates for ${monitorName}.
+      <a href="${unsubscribeUrl}" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+    </p>
+  `
+
+  return emailLayout({
+    title: `✅ Service Recovered: ${monitorName}`,
+    previewText: `${monitorName} has recovered after ${downtimeMinutes} minutes of downtime.`,
+    content,
+  })
+}

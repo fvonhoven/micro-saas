@@ -1,6 +1,9 @@
 import { adminDb } from "@repo/firebase/admin"
 import { NextRequest, NextResponse } from "next/server"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
   try {
     const { slug } = params
@@ -133,7 +136,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
           "Access-Control-Allow-Origin": "*", // Allow CORS for public API
           "Access-Control-Allow-Methods": "GET, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type",
-          "Cache-Control": "public, max-age=60, s-maxage=60", // Cache for 1 minute
+          "Cache-Control": "public, max-age=30, s-maxage=30, must-revalidate", // Cache for 30 seconds with revalidation
         },
       },
     )

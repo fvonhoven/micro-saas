@@ -4,6 +4,7 @@ import { cookies } from "next/headers"
 import { z } from "zod"
 import { Resend } from "resend"
 import { monitorPausedEmail, monitorResumedEmail } from "@/lib/email-templates"
+import { FieldValue } from "firebase-admin/firestore"
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -31,8 +32,8 @@ const updateMonitorSchema = z.object({
   alertEmail: z.string().email().optional().or(z.literal("")),
   timezone: z.string().optional(),
   statusPageEnabled: z.boolean().optional(),
-  statusPageTitle: z.string().max(100).optional(),
-  statusPageDescription: z.string().max(500).optional(),
+  statusPageTitle: z.string().max(100).optional().nullable(),
+  statusPageDescription: z.string().max(500).optional().nullable(),
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -91,6 +92,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (data.expectedInterval && monitor?.lastPingAt) {
       const lastPing = monitor.lastPingAt.toDate()
       updateData.nextExpectedAt = new Date(lastPing.getTime() + data.expectedInterval * 1000)
+    }
+
+    // Handle null values for statusPageTitle and statusPageDescription
+    // Convert null to FieldValue.delete() to actually remove the field from Firestore
+    if (data.statusPageTitle === null) {
+      updateData.statusPageTitle = FieldValue.delete()
+    }
+    if (data.statusPageDescription === null) {
+      updateData.statusPageDescription = FieldValue.delete()
     }
 
     // Update monitor
