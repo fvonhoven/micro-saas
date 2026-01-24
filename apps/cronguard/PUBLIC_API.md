@@ -315,7 +315,103 @@ console.log(data.message)
 
 ---
 
-## �🔧 Usage Examples
+## �️ Status Groups API
+
+### Get Multi-Monitor Status Group
+
+Retrieve status information for multiple monitors grouped together on a single status page.
+
+**Endpoint:** `GET /api/status-group/{slug}`
+
+**Parameters:**
+
+- `slug` (path parameter) - The unique slug identifier for your status group
+
+**Response:**
+
+```json
+{
+  "group": {
+    "name": "Production Services",
+    "description": "All critical production services",
+    "customTitle": "Our Services Status",
+    "customDescription": "Real-time status of all our production systems"
+  },
+  "overallStatus": "operational",
+  "monitors": [
+    {
+      "id": "abc123",
+      "name": "API Server",
+      "description": "Main API endpoint",
+      "status": "HEALTHY",
+      "lastPingAt": "2026-01-24T10:30:00.000Z",
+      "uptime30d": 99.95
+    },
+    {
+      "id": "def456",
+      "name": "Database Backup",
+      "description": "Nightly backup job",
+      "status": "HEALTHY",
+      "lastPingAt": "2026-01-24T09:00:00.000Z",
+      "uptime30d": 100.0
+    }
+  ],
+  "stats": {
+    "total": 2,
+    "operational": 2,
+    "degraded": 0,
+    "down": 0
+  }
+}
+```
+
+**Overall Status Values:**
+
+- `operational` - All monitors are HEALTHY
+- `degraded_performance` - Some monitors are LATE
+- `partial_outage` - Some monitors are DOWN (but not all)
+- `major_outage` - All monitors are DOWN
+
+**Example Usage:**
+
+```javascript
+// Fetch status group data
+const response = await fetch("https://yourapp.com/api/status-group/production-services-1234567890")
+const data = await response.json()
+
+console.log(`Overall Status: ${data.overallStatus}`)
+console.log(`${data.stats.operational}/${data.stats.total} services operational`)
+
+// Check individual monitors
+data.monitors.forEach(monitor => {
+  console.log(`${monitor.name}: ${monitor.status} (${monitor.uptime30d}% uptime)`)
+})
+```
+
+**Public Status Page:**
+
+Each status group has a public status page at:
+
+```
+https://yourapp.com/status-group/{slug}
+```
+
+**Features:**
+
+- ✅ Overall system status indicator
+- ✅ Individual monitor statuses
+- ✅ 30-day uptime for each monitor
+- ✅ Auto-refreshes every 30 seconds
+- ✅ Responsive design
+- ✅ Custom branding (title/description)
+
+**CORS:** This endpoint supports CORS and can be called from any origin.
+
+**Caching:** Responses are cached for 30 seconds.
+
+---
+
+## ��🔧 Usage Examples
 
 ### README Badge
 
