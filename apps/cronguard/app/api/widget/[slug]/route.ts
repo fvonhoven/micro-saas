@@ -43,13 +43,16 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
  * Generate the widget JavaScript code
  */
 function generateWidgetScript(slug: string, monitorName: string): string {
+  // Get the API base URL from environment or use production URL
+  const apiBase = process.env.NEXT_PUBLIC_APP_URL || "https://cronnarc.com"
+
   return `
 (function() {
   'use strict';
-  
+
   // Configuration
   const SLUG = '${slug}';
-  const API_BASE = window.location.origin;
+  const API_BASE = '${apiBase}';
   
   // Find the script tag that loaded this widget
   const scripts = document.getElementsByTagName('script');
@@ -222,4 +225,3 @@ function generateErrorWidget(message: string): NextResponse {
     },
   })
 }
-
