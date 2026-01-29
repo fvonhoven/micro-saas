@@ -95,7 +95,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm text-gray-600">
             Don't have an account?{" "}
             <Link href="/signup" className="text-blue-600 hover:underline">
-              Sign up
+              Join the waitlist
             </Link>
           </p>
         </div>
@@ -103,4 +103,3 @@ export default function ForgotPasswordPage() {
     </div>
   )
 }
-

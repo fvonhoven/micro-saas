@@ -186,7 +186,7 @@ export default function PricingPage() {
                 <Button onClick={() => router.push("/login")} variant="outline">
                   Sign In
                 </Button>
-                <Button onClick={() => router.push("/signup")}>Get Started</Button>
+                <Button onClick={() => router.push("/signup")}>Join Waitlist</Button>
               </>
             )}
           </div>

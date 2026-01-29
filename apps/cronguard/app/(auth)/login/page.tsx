@@ -99,11 +99,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <HCaptcha 
-            onVerify={handleCaptchaVerify}
-            onError={handleCaptchaError}
-            onExpire={handleCaptchaExpire}
-          />
+          <HCaptcha onVerify={handleCaptchaVerify} onError={handleCaptchaError} onExpire={handleCaptchaExpire} />
 
           <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
             {loading ? "Signing in..." : "Sign In"}
@@ -113,7 +109,7 @@ export default function LoginPage() {
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{" "}
           <Link href="/signup" className="text-blue-600 hover:underline">
-            Sign up
+            Join the waitlist
           </Link>
         </p>
       </div>

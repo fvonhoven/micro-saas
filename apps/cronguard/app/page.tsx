@@ -31,7 +31,7 @@ export default function HomePage() {
           <div className="flex gap-4 justify-center">
             <Link href="/signup">
               <Button size="lg" className="shadow-lg hover:shadow-xl transition-shadow">
-                Get Started Free →
+                Join Waitlist →
               </Button>
             </Link>
             <Link href="/login">
@@ -40,6 +40,7 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
+          <p className="mt-6 text-sm text-gray-500">🚀 Coming soon! Join the waitlist to be notified when we launch.</p>
         </div>
 
         {/* Features */}
