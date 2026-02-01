@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { adminDb } from "@micro-saas/firebase/admin"
+import { adminDb } from "@repo/firebase/admin"
 import { sendAlertToChannels, type AlertPayload } from "@/lib/alert-channels"
-import { monitorFailedEmail } from "@/emails/monitor-failed"
+import { monitorFailedEmail } from "@/lib/email-templates"
 import { notifySubscribersMonitorDown } from "@/lib/notify-subscribers"
 
 /**
  * POST /api/ping/[slug]/fail
- * 
+ *
  * Signal that a job has failed explicitly. This creates an incident and sends alerts.
- * 
+ *
  * Optional body:
  * - message: string - Error message or failure reason
  */
@@ -153,4 +153,3 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
 // Support GET requests too for easier testing
 export const GET = POST
-

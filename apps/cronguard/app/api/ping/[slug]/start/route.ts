@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { adminDb } from "@micro-saas/firebase/admin"
+import { adminDb } from "@repo/firebase/admin"
 
 /**
  * POST /api/ping/[slug]/start
- * 
+ *
  * Signal that a job has started. This enables duration tracking and "running too long" alerts.
- * 
+ *
  * Flow:
  * 1. Job calls /start when it begins
  * 2. Job calls /ping/[slug] when it completes successfully
@@ -62,4 +62,3 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
 // Support GET requests too for easier testing
 export const GET = POST
-
