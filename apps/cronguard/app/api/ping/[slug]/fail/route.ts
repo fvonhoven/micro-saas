@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
             monitorId: monitorDoc.id,
             monitorName: monitor.name,
             monitorSlug: monitor.slug,
-            event: "down",
+            event: "failed",
             timestamp: now.toISOString(),
             details: {
               failureMessage,

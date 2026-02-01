@@ -54,7 +54,7 @@ export interface AlertPayload {
   monitorId: string
   monitorName: string
   monitorSlug: string
-  event: "down" | "recovery" | "paused" | "resumed"
+  event: "down" | "recovery" | "paused" | "resumed" | "failed"
   timestamp: string
   details?: {
     lastPingAt?: string
@@ -63,6 +63,7 @@ export interface AlertPayload {
     downtimeMinutes?: number
     wentDownAt?: string
     recoveredAt?: string
+    failureMessage?: string
   }
 }
 
