@@ -631,7 +631,9 @@ export default function DashboardPage() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="HEALTHY">✅ Healthy</option>
+                  <option value="RUNNING">▶️ Running</option>
                   <option value="DOWN">🚨 Down</option>
+                  <option value="FAILED">❌ Failed</option>
                   <option value="LATE">⚠️ Late</option>
                   <option value="PAUSED">⏸️ Paused</option>
                   <option value="PENDING">⏳ Pending</option>

@@ -20,15 +20,7 @@ interface MonitorSelectionModalProps {
   newPlanName: string
 }
 
-export function MonitorSelectionModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  monitors,
-  currentLimit,
-  newLimit,
-  newPlanName,
-}: MonitorSelectionModalProps) {
+export function MonitorSelectionModal({ isOpen, onClose, onConfirm, monitors, currentLimit, newLimit, newPlanName }: MonitorSelectionModalProps) {
   const [selectedMonitors, setSelectedMonitors] = useState<Set<string>>(new Set())
 
   if (!isOpen) return null
@@ -59,12 +51,11 @@ export function MonitorSelectionModal({
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Monitors to Keep</h2>
           <p className="text-gray-600">
-            You're downgrading to the <strong>{newPlanName}</strong> plan, which allows <strong>{newLimit} monitors</strong>.
-            You currently have <strong>{monitors.length} monitors</strong>.
+            You're downgrading to the <strong>{newPlanName}</strong> plan, which allows <strong>{newLimit} monitors</strong>. You currently have{" "}
+            <strong>{monitors.length} monitors</strong>.
           </p>
           <p className="text-red-600 font-semibold mt-2">
-            Please select {newLimit} monitor{newLimit !== 1 ? "s" : ""} to keep. The remaining {monitorsToDisable} will be
-            archived for 30 days.
+            Please select {newLimit} monitor{newLimit !== 1 ? "s" : ""} to keep. The remaining {monitorsToDisable} will be archived for 30 days.
           </p>
         </div>
 
@@ -115,11 +106,13 @@ export function MonitorSelectionModal({
                             className={`inline-block px-2 py-0.5 text-xs font-semibold rounded ${
                               monitor.status === "HEALTHY"
                                 ? "bg-green-100 text-green-800"
-                                : monitor.status === "DOWN"
-                                  ? "bg-red-100 text-red-800"
-                                  : monitor.status === "LATE"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-gray-100 text-gray-800"
+                                : monitor.status === "RUNNING"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : monitor.status === "DOWN" || monitor.status === "FAILED"
+                                    ? "bg-red-100 text-red-800"
+                                    : monitor.status === "LATE"
+                                      ? "bg-yellow-100 text-yellow-800"
+                                      : "bg-gray-100 text-gray-800"
                             }`}
                           >
                             {monitor.status}
@@ -140,9 +133,7 @@ export function MonitorSelectionModal({
             <p className="text-sm text-gray-600">
               Selected: <strong>{selectedMonitors.size}</strong> of <strong>{newLimit}</strong>
             </p>
-            {!canProceed && (
-              <p className="text-sm text-red-600 font-semibold">Please select {newLimit - selectedMonitors.size} more</p>
-            )}
+            {!canProceed && <p className="text-sm text-red-600 font-semibold">Please select {newLimit - selectedMonitors.size} more</p>}
           </div>
           <div className="flex gap-3">
             <Button onClick={onClose} variant="outline" className="flex-1">
@@ -157,4 +148,3 @@ export function MonitorSelectionModal({
     </div>
   )
 }
-

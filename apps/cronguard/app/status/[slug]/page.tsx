@@ -160,8 +160,17 @@ export default function PublicStatusPage() {
     )
   }
 
-  const statusColor = monitor.status === "HEALTHY" ? "green" : monitor.status === "LATE" ? "yellow" : "red"
-  const statusText = monitor.status === "HEALTHY" ? "All Systems Operational" : monitor.status === "LATE" ? "Degraded Performance" : "System Down"
+  const statusColor = monitor.status === "HEALTHY" ? "green" : monitor.status === "RUNNING" ? "blue" : monitor.status === "LATE" ? "yellow" : "red"
+  const statusText =
+    monitor.status === "HEALTHY"
+      ? "All Systems Operational"
+      : monitor.status === "RUNNING"
+        ? "Job Running"
+        : monitor.status === "LATE"
+          ? "Degraded Performance"
+          : monitor.status === "FAILED"
+            ? "Job Failed"
+            : "System Down"
 
   // Calculate monitor age to determine which stats to show
   const createdDate = new Date(monitor.createdAt)

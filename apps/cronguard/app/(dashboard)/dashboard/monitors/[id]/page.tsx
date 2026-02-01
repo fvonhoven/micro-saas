@@ -283,9 +283,13 @@ export default function MonitorDetailsPage() {
     switch (status) {
       case "HEALTHY":
         return "text-green-600 bg-green-50"
+      case "RUNNING":
+        return "text-blue-600 bg-blue-50"
       case "LATE":
         return "text-yellow-600 bg-yellow-50"
       case "DOWN":
+        return "text-red-600 bg-red-50"
+      case "FAILED":
         return "text-red-600 bg-red-50"
       case "PAUSED":
         return "text-gray-600 bg-gray-50"

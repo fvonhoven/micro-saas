@@ -5,7 +5,7 @@ export const PLAN_METADATA = {
       name: "Free",
       monthlyPrice: 0,
       annualPrice: 0,
-      limits: { monitors: 2, minCheckIntervalMinutes: 5 },
+      limits: { monitors: 5, minCheckIntervalMinutes: 5 },
     },
     starter: {
       name: "Starter",
@@ -88,7 +88,7 @@ export const PLANS = {
       priceId: null,
       monthlyPrice: 0,
       annualPrice: 0,
-      limits: { monitors: 2, minCheckIntervalMinutes: 5 },
+      limits: { monitors: 5, minCheckIntervalMinutes: 5 },
     },
     starter: {
       name: "Starter",

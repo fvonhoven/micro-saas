@@ -25,19 +25,40 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
     const now = new Date()
     const nextExpectedAt = new Date(now.getTime() + monitor.expectedInterval * 1000)
-    const wasDown = monitor.status === "DOWN" || monitor.status === "LATE"
+    const wasDown = monitor.status === "DOWN" || monitor.status === "LATE" || monitor.status === "FAILED"
+
+    // Calculate duration if job was started
+    let duration: number | undefined
+    if (monitor.lastStartedAt) {
+      const startedAt = monitor.lastStartedAt.toDate()
+      duration = now.getTime() - startedAt.getTime()
+    }
 
     // Update monitor and create ping record in a batch
     const batch = adminDb.batch()
 
-    batch.update(monitorDoc.ref, {
+    const updateData: any = {
       lastPingAt: now,
       nextExpectedAt: nextExpectedAt,
       status: "HEALTHY",
-    })
+    }
+
+    // Track duration if available
+    if (duration !== undefined) {
+      updateData.lastDuration = duration
+
+      // Calculate rolling average duration (simple moving average of last 10)
+      const avgDuration = monitor.avgDuration || 0
+      const alpha = 0.1 // Weight for new value (10% = like averaging last 10 values)
+      updateData.avgDuration = avgDuration * (1 - alpha) + duration * alpha
+    }
+
+    batch.update(monitorDoc.ref, updateData)
 
     batch.create(monitorDoc.ref.collection("pings").doc(), {
       receivedAt: now,
+      type: "success",
+      duration,
       ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
       userAgent: req.headers.get("user-agent"),
     })

@@ -21,12 +21,13 @@ async function getUserFromSession(req: NextRequest) {
 }
 
 const createChannelSchema = z.object({
-  type: z.enum(["email", "slack", "discord", "webhook"]),
+  type: z.enum(["email", "slack", "discord", "telegram", "teams", "webhook"]),
   name: z.string().min(1).max(100),
   enabled: z.boolean().default(true),
   config: z.union([
     z.object({ email: z.string().email() }),
     z.object({ webhookUrl: z.string().url() }),
+    z.object({ botToken: z.string().min(1), chatId: z.string().min(1) }),
     z.object({
       url: z.string().url(),
       method: z.enum(["POST", "GET"]).optional(),
@@ -94,18 +95,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const now = new Date()
 
     // Create channel
-    const channelRef = await adminDb
-      .collection("monitors")
-      .doc(id)
-      .collection("channels")
-      .add({
-        type: data.type,
-        name: data.name,
-        enabled: data.enabled,
-        config: data.config,
-        createdAt: now,
-        updatedAt: now,
-      })
+    const channelRef = await adminDb.collection("monitors").doc(id).collection("channels").add({
+      type: data.type,
+      name: data.name,
+      enabled: data.enabled,
+      config: data.config,
+      createdAt: now,
+      updatedAt: now,
+    })
 
     const channel = await channelRef.get()
 
@@ -120,4 +117,3 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-

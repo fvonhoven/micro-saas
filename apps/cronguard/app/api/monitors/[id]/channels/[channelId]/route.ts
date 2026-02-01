@@ -26,6 +26,7 @@ const updateChannelSchema = z.object({
     .union([
       z.object({ email: z.string().email() }),
       z.object({ webhookUrl: z.string().url() }),
+      z.object({ botToken: z.string().min(1), chatId: z.string().min(1) }),
       z.object({
         url: z.string().url(),
         method: z.enum(["POST", "GET"]).optional(),
@@ -117,4 +118,3 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
-

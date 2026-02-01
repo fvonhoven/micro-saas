@@ -469,6 +469,77 @@ export function monitorResumedEmail({ monitorName, monitorUrl, resumedBy, dashbo
 }
 
 /**
+ * Monitor Failed Email Template
+ */
+interface MonitorFailedEmailProps {
+  monitorName: string
+  monitorUrl: string
+  failureMessage?: string
+  currentTime: string
+  dashboardUrl: string
+}
+
+export function monitorFailedEmail({ monitorName, monitorUrl, failureMessage, currentTime, dashboardUrl }: MonitorFailedEmailProps): string {
+  const content = `
+    <div class="alert-box">
+      <h1 style="margin-top: 0;">❌ Monitor Failed</h1>
+      <p style="margin-bottom: 0; font-size: 18px;">
+        Your monitor <strong>${monitorName}</strong> has reported a failure and is now marked as <strong style="color: #dc2626;">FAILED</strong>.
+      </p>
+    </div>
+
+    <p>Your cron job explicitly reported a failure. This indicates the job ran but encountered an error during execution.</p>
+
+    ${
+      failureMessage
+        ? `
+    <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 16px; margin: 24px 0; border-radius: 6px;">
+      <p style="margin: 0; font-size: 14px; color: #991b1b; font-family: monospace;">
+        <strong>Error Message:</strong><br>
+        ${failureMessage}
+      </p>
+    </div>
+    `
+        : ""
+    }
+
+    <table class="info-table">
+      <tr>
+        <td>Monitor Name</td>
+        <td>${monitorName}</td>
+      </tr>
+      <tr>
+        <td>Failed At</td>
+        <td>${currentTime}</td>
+      </tr>
+      <tr>
+        <td>Status</td>
+        <td><strong style="color: #dc2626;">FAILED</strong></td>
+      </tr>
+    </table>
+
+    <p style="margin-top: 32px; text-align: center;">
+      <a href="${monitorUrl}" class="button">View Monitor Details</a>
+    </p>
+
+    <p style="font-size: 14px; color: #6b7280; margin-top: 32px;">
+      <strong>Next Steps:</strong><br>
+      1. Review the error message above<br>
+      2. Check application logs for more details<br>
+      3. Fix the underlying issue<br>
+      4. Test your cron job manually<br>
+      5. Monitor will auto-recover on next successful ping
+    </p>
+  `
+
+  return emailLayout({
+    title: `❌ Monitor Failed: ${monitorName}`,
+    previewText: `${monitorName} has reported a failure.${failureMessage ? ` Error: ${failureMessage}` : ""}`,
+    content: content.replace("{{dashboardUrl}}", dashboardUrl),
+  })
+}
+
+/**
  * Team Invite Email Template
  */
 interface TeamInviteEmailProps {

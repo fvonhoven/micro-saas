@@ -5,17 +5,19 @@
  * - Email
  * - Slack
  * - Discord
+ * - Telegram
+ * - Microsoft Teams
  * - Custom Webhooks
  */
 
-export type AlertChannelType = "email" | "slack" | "discord" | "webhook"
+export type AlertChannelType = "email" | "slack" | "discord" | "telegram" | "teams" | "webhook"
 
 export interface AlertChannel {
   id: string
   type: AlertChannelType
   name: string
   enabled: boolean
-  config: EmailConfig | SlackConfig | DiscordConfig | WebhookConfig
+  config: EmailConfig | SlackConfig | DiscordConfig | TelegramConfig | TeamsConfig | WebhookConfig
   createdAt: Date
   updatedAt: Date
 }
@@ -29,6 +31,15 @@ export interface SlackConfig {
 }
 
 export interface DiscordConfig {
+  webhookUrl: string
+}
+
+export interface TelegramConfig {
+  botToken: string
+  chatId: string
+}
+
+export interface TeamsConfig {
   webhookUrl: string
 }
 
@@ -265,6 +276,164 @@ export async function sendDiscordAlert(config: DiscordConfig, payload: AlertPayl
 }
 
 /**
+ * Send alert to Telegram channel
+ */
+export async function sendTelegramAlert(config: TelegramConfig, payload: AlertPayload): Promise<boolean> {
+  try {
+    const emoji = payload.event === "down" ? "🚨" : payload.event === "recovery" ? "✅" : payload.event === "paused" ? "⏸️" : "▶️"
+
+    const title =
+      payload.event === "down"
+        ? `Monitor Down: ${payload.monitorName}`
+        : payload.event === "recovery"
+          ? `Monitor Recovered: ${payload.monitorName}`
+          : payload.event === "paused"
+            ? `Monitor Paused: ${payload.monitorName}`
+            : `Monitor Resumed: ${payload.monitorName}`
+
+    const description =
+      payload.event === "down"
+        ? `Your monitor <b>${payload.monitorName}</b> has not checked in and is now marked as DOWN.`
+        : payload.event === "recovery"
+          ? `Your monitor <b>${payload.monitorName}</b> has recovered and is now HEALTHY.`
+          : payload.event === "paused"
+            ? `Your monitor <b>${payload.monitorName}</b> has been paused.`
+            : `Your monitor <b>${payload.monitorName}</b> has been resumed.`
+
+    let details = ""
+    if (payload.details?.lastPingAt) {
+      details += `\n📅 Last Ping: ${payload.details.lastPingAt}`
+    }
+    if (payload.details?.expectedBy) {
+      details += `\n⏰ Expected By: ${payload.details.expectedBy}`
+    }
+    if (payload.details?.downtimeMinutes !== undefined) {
+      const hours = Math.floor(payload.details.downtimeMinutes / 60)
+      const minutes = payload.details.downtimeMinutes % 60
+      const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+      details += `\n⏱️ Downtime: ${duration}`
+    }
+
+    const baseUrl = getBaseUrl()
+    const monitorUrl = `${baseUrl}/dashboard/monitors/${payload.monitorId}`
+
+    const text = `${emoji} <b>${title}</b>\n\n${description}${details}\n\n<a href="${monitorUrl}">View Monitor</a>`
+
+    const telegramPayload = {
+      chat_id: config.chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    }
+
+    console.log("Sending Telegram alert to chat:", config.chatId)
+
+    const response = await fetch(`https://api.telegram.org/bot${config.botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(telegramPayload),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Telegram API error:", response.status, errorText)
+      return false
+    }
+
+    console.log("Telegram alert sent successfully")
+    return true
+  } catch (error) {
+    console.error("Telegram alert failed:", error)
+    return false
+  }
+}
+
+/**
+ * Send alert to Microsoft Teams channel
+ */
+export async function sendTeamsAlert(config: TeamsConfig, payload: AlertPayload): Promise<boolean> {
+  try {
+    const themeColor = payload.event === "down" ? "FF0000" : payload.event === "recovery" ? "10b981" : "f59e0b"
+
+    const emoji = payload.event === "down" ? "🚨" : payload.event === "recovery" ? "✅" : payload.event === "paused" ? "⏸️" : "▶️"
+
+    const title =
+      payload.event === "down"
+        ? `Monitor Down: ${payload.monitorName}`
+        : payload.event === "recovery"
+          ? `Monitor Recovered: ${payload.monitorName}`
+          : payload.event === "paused"
+            ? `Monitor Paused: ${payload.monitorName}`
+            : `Monitor Resumed: ${payload.monitorName}`
+
+    const facts: Array<{ name: string; value: string }> = []
+
+    if (payload.details?.lastPingAt) {
+      facts.push({ name: "Last Ping", value: payload.details.lastPingAt })
+    }
+    if (payload.details?.expectedBy) {
+      facts.push({ name: "Expected By", value: payload.details.expectedBy })
+    }
+    if (payload.details?.downtimeMinutes !== undefined) {
+      const hours = Math.floor(payload.details.downtimeMinutes / 60)
+      const minutes = payload.details.downtimeMinutes % 60
+      const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+      facts.push({ name: "Downtime", value: duration })
+    }
+
+    const baseUrl = getBaseUrl()
+    const monitorUrl = `${baseUrl}/dashboard/monitors/${payload.monitorId}`
+
+    const teamsPayload = {
+      "@type": "MessageCard",
+      "@context": "http://schema.org/extensions",
+      themeColor,
+      summary: title,
+      sections: [
+        {
+          activityTitle: `${emoji} ${title}`,
+          activitySubtitle: payload.monitorName,
+          facts,
+          markdown: true,
+        },
+      ],
+      potentialAction: [
+        {
+          "@type": "OpenUri",
+          name: "View Monitor",
+          targets: [
+            {
+              os: "default",
+              uri: monitorUrl,
+            },
+          ],
+        },
+      ],
+    }
+
+    console.log("Sending Teams alert to:", config.webhookUrl)
+
+    const response = await fetch(config.webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(teamsPayload),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error("Teams API error:", response.status, errorText)
+      return false
+    }
+
+    console.log("Teams alert sent successfully")
+    return true
+  } catch (error) {
+    console.error("Teams alert failed:", error)
+    return false
+  }
+}
+
+/**
  * Send alert to custom webhook
  */
 export async function sendWebhookAlert(config: WebhookConfig, payload: AlertPayload): Promise<boolean> {
@@ -333,6 +502,12 @@ export async function sendAlertToChannels(
           break
         case "discord":
           result = await sendDiscordAlert(channel.config as DiscordConfig, payload)
+          break
+        case "telegram":
+          result = await sendTelegramAlert(channel.config as TelegramConfig, payload)
+          break
+        case "teams":
+          result = await sendTeamsAlert(channel.config as TeamsConfig, payload)
           break
         case "webhook":
           result = await sendWebhookAlert(channel.config as WebhookConfig, payload)

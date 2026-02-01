@@ -135,10 +135,14 @@ export default function StatusGroupPage() {
     switch (status) {
       case "HEALTHY":
         return "Operational"
+      case "RUNNING":
+        return "Running"
       case "LATE":
         return "Degraded"
       case "DOWN":
         return "Down"
+      case "FAILED":
+        return "Failed"
       case "PAUSED":
         return "Paused"
       case "PENDING":
@@ -178,13 +182,12 @@ export default function StatusGroupPage() {
     )
   }
 
-  return <div className="min-h-screen bg-gray-50 py-8 px-4">
+  return (
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {data.group.customTitle || data.group.name}
-          </h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{data.group.customTitle || data.group.name}</h1>
           {(data.group.customDescription || data.group.description) && (
             <p className="text-gray-600">{data.group.customDescription || data.group.description}</p>
           )}
@@ -224,7 +227,9 @@ export default function StatusGroupPage() {
                     <div className="flex items-center gap-3 mb-1">
                       <div className={`w-3 h-3 rounded-full ${getStatusColor(monitor.status)}`}></div>
                       <h4 className="font-medium text-gray-900">{monitor.name}</h4>
-                      <span className={`text-sm px-2 py-0.5 rounded ${monitor.status === "HEALTHY" ? "bg-green-100 text-green-800" : monitor.status === "LATE" ? "bg-yellow-100 text-yellow-800" : monitor.status === "DOWN" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}>
+                      <span
+                        className={`text-sm px-2 py-0.5 rounded ${monitor.status === "HEALTHY" ? "bg-green-100 text-green-800" : monitor.status === "RUNNING" ? "bg-blue-100 text-blue-800" : monitor.status === "LATE" ? "bg-yellow-100 text-yellow-800" : monitor.status === "DOWN" || monitor.status === "FAILED" ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}
+                      >
                         {getStatusText(monitor.status)}
                       </span>
                     </div>
@@ -251,5 +256,5 @@ export default function StatusGroupPage() {
         </div>
       </div>
     </div>
+  )
 }
-

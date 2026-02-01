@@ -286,7 +286,7 @@ apps/cronguard/
 
 ### Plan Limits
 
-- **Free**: 2 monitors, 5-minute intervals
+- **Free**: 5 monitors, 5-minute intervals
 - **Starter**: 5 monitors, 5-minute intervals
 - **Pro**: 25 monitors, 1-minute intervals, multi-monitor status pages
 - **Team**: 100 monitors, 1-minute intervals, multi-monitor status pages, team features
@@ -716,7 +716,7 @@ UPSTASH_REDIS_TOKEN=
 4. **90-day uptime history** - Longer than most competitors
 5. **Team collaboration** - Built-in from the start
 6. **Multiple alert channels** - Email, Slack, Discord, webhooks
-7. **Generous free tier** - 2 monitors with full features
+7. **Generous free tier** - 5 monitors with full features
 
 ---
 

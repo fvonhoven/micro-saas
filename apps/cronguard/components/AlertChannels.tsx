@@ -19,6 +19,8 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
   const [channelName, setChannelName] = useState("")
   const [email, setEmail] = useState("")
   const [webhookUrl, setWebhookUrl] = useState("")
+  const [telegramBotToken, setTelegramBotToken] = useState("")
+  const [telegramChatId, setTelegramChatId] = useState("")
   const [customUrl, setCustomUrl] = useState("")
   const [customMethod, setCustomMethod] = useState<"POST" | "GET">("POST")
   const [includeDetails, setIncludeDetails] = useState(true)
@@ -54,6 +56,12 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
         case "discord":
           config = { webhookUrl }
           break
+        case "telegram":
+          config = { botToken: telegramBotToken, chatId: telegramChatId }
+          break
+        case "teams":
+          config = { webhookUrl }
+          break
         case "webhook":
           config = {
             url: customUrl,
@@ -82,6 +90,8 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
       setChannelName("")
       setEmail("")
       setWebhookUrl("")
+      setTelegramBotToken("")
+      setTelegramChatId("")
       setCustomUrl("")
       setShowAddForm(false)
 
@@ -146,6 +156,10 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
         return "💬"
       case "discord":
         return "🎮"
+      case "telegram":
+        return "✈️"
+      case "teams":
+        return "👥"
       case "webhook":
         return "🔗"
     }
@@ -157,7 +171,10 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
         return (channel.config as any).email
       case "slack":
       case "discord":
+      case "teams":
         return (channel.config as any).webhookUrl
+      case "telegram":
+        return `Chat ID: ${(channel.config as any).chatId}`
       case "webhook":
         return (channel.config as any).url
     }
@@ -197,6 +214,8 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
               <option value="email">📧 Email</option>
               <option value="slack">💬 Slack</option>
               <option value="discord">🎮 Discord</option>
+              <option value="telegram">✈️ Telegram</option>
+              <option value="teams">👥 Microsoft Teams</option>
               <option value="webhook">🔗 Custom Webhook</option>
             </select>
           </div>
@@ -250,6 +269,61 @@ export function AlertChannels({ monitorId, onUpdate }: AlertChannelsProps) {
                   <>Create a webhook in Discord: Server Settings → Integrations → Webhooks</>
                 )}
               </p>
+            </div>
+          )}
+
+          {/* Telegram Config */}
+          {channelType === "telegram" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Bot Token</label>
+                <input
+                  type="text"
+                  value={telegramBotToken}
+                  onChange={e => setTelegramBotToken(e.target.value)}
+                  placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Create a bot with{" "}
+                  <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                    @BotFather
+                  </a>{" "}
+                  on Telegram
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Chat ID</label>
+                <input
+                  type="text"
+                  value={telegramChatId}
+                  onChange={e => setTelegramChatId(e.target.value)}
+                  placeholder="-1001234567890 or 123456789"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Use{" "}
+                  <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-purple-600 hover:underline">
+                    @userinfobot
+                  </a>{" "}
+                  to get your chat ID
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Teams Config */}
+          {channelType === "teams" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook URL</label>
+              <input
+                type="url"
+                value={webhookUrl}
+                onChange={e => setWebhookUrl(e.target.value)}
+                placeholder="https://outlook.office.com/webhook/..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Create an Incoming Webhook in Teams: Channel → Connectors → Incoming Webhook</p>
             </div>
           )}
 

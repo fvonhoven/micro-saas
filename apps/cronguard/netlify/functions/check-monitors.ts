@@ -53,9 +53,69 @@ const handler = schedule("*/5 * * * *", async () => {
       overdueCount++
       const graceEndTime = new Date(nextExpectedAt.getTime() + (monitor.gracePeriod || 300) * 1000)
 
+      // Check if job is running too long
+      if (monitor.status === "RUNNING" && monitor.maxDuration && monitor.lastStartedAt) {
+        const startedAt = monitor.lastStartedAt.toDate()
+        const runningDuration = now.getTime() - startedAt.getTime()
+
+        if (runningDuration > monitor.maxDuration * 1000) {
+          console.log(`Monitor ${monitor.name} - Running too long (${Math.floor(runningDuration / 1000)}s > ${monitor.maxDuration}s)`)
+
+          // Send alert for running too long (only once)
+          const incidentsSnapshot = await doc.ref
+            .collection("incidents")
+            .where("resolvedAt", "==", null)
+            .where("type", "==", "running_too_long")
+            .limit(1)
+            .get()
+
+          if (incidentsSnapshot.empty) {
+            // Create incident for running too long
+            await doc.ref.collection("incidents").add({
+              startedAt: now,
+              resolvedAt: null,
+              type: "running_too_long",
+              alertsSent: {},
+            })
+
+            // Send alerts
+            const channelsSnapshot = await doc.ref.collection("channels").where("enabled", "==", true).get()
+
+            if (!channelsSnapshot.empty) {
+              const channels = channelsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[]
+
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+              const monitorUrl = `${baseUrl}/dashboard/monitors/${doc.id}`
+
+              const payload: AlertPayload = {
+                monitorId: doc.id,
+                monitorName: monitor.name,
+                monitorSlug: monitor.slug,
+                event: "down",
+                timestamp: now.toISOString(),
+                details: {
+                  currentTime: formatTime(now),
+                },
+              }
+
+              const emailHtml = `
+                <h1>⏱️ Job Running Too Long</h1>
+                <p>Your monitor <strong>${monitor.name}</strong> has been running for ${Math.floor(runningDuration / 60000)} minutes, exceeding the maximum duration of ${Math.floor(monitor.maxDuration / 60)} minutes.</p>
+                <p><a href="${monitorUrl}">View Monitor</a></p>
+              `
+
+              const emailSubject = `⏱️ Job Running Too Long: ${monitor.name}`
+
+              await sendAlertToChannels(channels, payload, emailHtml, emailSubject)
+              console.log(`Monitor ${monitor.name} - Running too long alerts sent`)
+            }
+          }
+        }
+      }
+
       if (now < graceEndTime) {
-        // Still in grace period - mark as LATE (only if not already LATE or DOWN)
-        if (monitor.status !== "LATE" && monitor.status !== "DOWN") {
+        // Still in grace period - mark as LATE (only if not already LATE, DOWN, or FAILED)
+        if (monitor.status !== "LATE" && monitor.status !== "DOWN" && monitor.status !== "FAILED") {
           await doc.ref.update({ status: "LATE" })
           console.log(`Monitor ${monitor.name} is LATE`)
         }
@@ -63,7 +123,7 @@ const handler = schedule("*/5 * * * *", async () => {
         // Grace period expired - mark as DOWN and send alert (ONLY ONCE)
         console.log(`Monitor ${monitor.name} - Current status: ${monitor.status}`)
 
-        if (monitor.status !== "DOWN") {
+        if (monitor.status !== "DOWN" && monitor.status !== "FAILED") {
           console.log(`Monitor ${monitor.name} - Transitioning to DOWN status`)
 
           // Update status to DOWN FIRST, before sending email
