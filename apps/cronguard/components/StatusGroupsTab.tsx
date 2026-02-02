@@ -1,7 +1,5 @@
 "use client"
 
-import { useAuthContext } from "@repo/auth"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 
@@ -18,19 +16,21 @@ interface StatusGroup {
   teamId?: string
 }
 
-export default function StatusGroupsPage() {
-  const { user, loading: authLoading } = useAuthContext()
-  const router = useRouter()
+interface StatusGroupsTabProps {
+  currentWorkspace: {
+    type: "personal" | "team"
+    teamId?: string
+    teamName?: string
+  }
+}
+
+export function StatusGroupsTab({ currentWorkspace }: StatusGroupsTabProps) {
   const [groups, setGroups] = useState<StatusGroup[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push("/login")
-    } else if (user) {
-      fetchGroups()
-    }
-  }, [user, authLoading, router])
+    fetchGroups()
+  }, [currentWorkspace])
 
   const fetchGroups = async () => {
     try {
@@ -86,35 +86,29 @@ export default function StatusGroupsPage() {
     }
   }
 
-  if (authLoading || loading) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Navigation Tabs */}
-      <div className="flex gap-4 mb-6 border-b border-gray-200">
-        <Link
-          href="/dashboard"
-          className="px-4 py-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors"
-        >
-          Monitors
-        </Link>
-        <Link href="/dashboard/status-groups" className="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-          Status Groups
-        </Link>
-      </div>
-
+    <div>
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Status Page Groups</h1>
           <p className="mt-2 text-gray-600">Create multi-monitor status pages for your services</p>
         </div>
-        <Link href="/dashboard/status-groups/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        <Link
+          href={
+            currentWorkspace.type === "team" && currentWorkspace.teamId
+              ? `/dashboard/status-groups/new?teamId=${currentWorkspace.teamId}`
+              : "/dashboard/status-groups/new"
+          }
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+        >
           + Create Status Group
         </Link>
       </div>
@@ -134,7 +128,11 @@ export default function StatusGroupsPage() {
           <h3 className="text-lg font-medium text-gray-900 mb-2">No status groups yet</h3>
           <p className="text-gray-600 mb-6">Create your first status group to display multiple monitors on a single page</p>
           <Link
-            href="/dashboard/status-groups/new"
+            href={
+              currentWorkspace.type === "team" && currentWorkspace.teamId
+                ? `/dashboard/status-groups/new?teamId=${currentWorkspace.teamId}`
+                : "/dashboard/status-groups/new"
+            }
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Create Your First Status Group
