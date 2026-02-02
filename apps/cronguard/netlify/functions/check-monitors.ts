@@ -94,7 +94,7 @@ const handler = schedule("*/5 * * * *", async () => {
                 event: "down",
                 timestamp: now.toISOString(),
                 details: {
-                  currentTime: formatTime(now),
+                  currentTime: now.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
                 },
               }
 
