@@ -65,14 +65,20 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     batch.update(monitorDoc.ref, updateData)
 
     // Create a ping record to track the failure event
-    batch.create(monitorDoc.ref.collection("pings").doc(), {
+    const pingData: any = {
       receivedAt: now,
       type: "fail",
       message: failureMessage,
-      duration,
-      ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip"),
-      userAgent: req.headers.get("user-agent"),
-    })
+      ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || null,
+      userAgent: req.headers.get("user-agent") || null,
+    }
+
+    // Only add duration if it's defined
+    if (duration !== undefined) {
+      pingData.duration = duration
+    }
+
+    batch.create(monitorDoc.ref.collection("pings").doc(), pingData)
 
     await batch.commit()
 
@@ -147,6 +153,21 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     })
   } catch (error) {
     console.error("Fail ping error:", error)
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      name: error instanceof Error ? error.name : undefined,
+      stack: error instanceof Error ? error.stack : undefined,
+      slug: params.slug,
+    })
+
+    // Check if it's a Firebase auth error
+    if (error instanceof Error && error.message.includes("credential")) {
+      console.error("⚠️ FIREBASE CREDENTIALS ERROR - Check environment variables:")
+      console.error("- FIREBASE_PROJECT_ID:", process.env.FIREBASE_PROJECT_ID ? "✓ Set" : "✗ Missing")
+      console.error("- FIREBASE_CLIENT_EMAIL:", process.env.FIREBASE_CLIENT_EMAIL ? "✓ Set" : "✗ Missing")
+      console.error("- FIREBASE_PRIVATE_KEY:", process.env.FIREBASE_PRIVATE_KEY ? "✓ Set" : "✗ Missing")
+    }
+
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
